@@ -1,0 +1,7 @@
+{"Parameters":{"BootstrapVersion":{"Type":"AWS::SSM::Parameter::Value<String>","Default":"/cdk-bootstrap/hnb659fds/version"}},
+ "Resources":{
+  "Bucket":{"Type":"AWS::S3::Bucket"},
+  "Build":{"Type":"AWS::CodeBuild::Project","Properties":{"Name":"{{resolve:secretsmanager:x}}"}},
+  "Cr":{"Type":"Custom::Thing","Properties":{"ServiceToken":"arn"}},
+  "Meta":{"Type":"AWS::CDK::Metadata"},
+  "Nested":{"Type":"AWS::CloudFormation::Stack"}}}

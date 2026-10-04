@@ -1,0 +1,4 @@
+{"version":"36.0.0","artifacts":{
+ "App":{"type":"aws:cloudformation:stack","environment":"aws://unknown-account/unknown-region","properties":{"templateFile":"App.template.json"}},
+ "Tree":{"type":"cdk:tree","properties":{"file":"tree.json"}},
+ "assembly-Stage":{"type":"cdk:cloud-assembly","properties":{"directoryName":"assembly-Stage"}}}}

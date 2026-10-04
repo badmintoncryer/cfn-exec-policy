@@ -1,0 +1,200 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"path"
+	"sort"
+	"strings"
+)
+
+// MaxPolicySize is IAM's managed policy size limit (whitespace excluded).
+const MaxPolicySize = 6144
+
+// RequiredActions returns the actions the execution role needs to create, update
+// and delete every resource in the templates, plus warnings for guesses.
+func RequiredActions(tbl *Table, tpls []*Template) (actions []string, warnings []string) {
+	set := map[string]bool{}
+	add := func(as ...string) {
+		for _, a := range as {
+			set[a] = true
+		}
+	}
+	warned := map[string]bool{}
+	warn := func(format string, args ...any) {
+		w := fmt.Sprintf(format, args...)
+		if !warned[w] {
+			warned[w] = true
+			warnings = append(warnings, w)
+		}
+	}
+	for _, t := range tpls {
+		for _, r := range t.Resources {
+			switch {
+			case r.Type == "AWS::CDK::Metadata":
+			case strings.HasPrefix(r.Type, "Custom::") || r.Type == "AWS::CloudFormation::CustomResource":
+				// CloudFormation invokes the ServiceToken with the service role's credentials.
+				add("lambda:InvokeFunction", "sns:Publish")
+			case tbl.Types[r.Type] != nil:
+				add(tbl.Types[r.Type]...)
+			case tbl.Prefixes[namespace(r.Type)] != "":
+				p := tbl.Prefixes[namespace(r.Type)]
+				add(p+":*", "iam:PassRole")
+				warn("%s has no handler permissions in the schema; granting %s:* and iam:PassRole", r.Type, p)
+			default:
+				warn("%s is unknown; no permissions granted for it", r.Type)
+			}
+			if r.Type == "AWS::CloudFormation::Stack" {
+				add("s3:GetObject") // nested template URL
+			}
+		}
+		for _, p := range t.Parameters {
+			if strings.HasPrefix(p.Type, "AWS::SSM::Parameter::Value") {
+				add("ssm:GetParameters")
+			}
+		}
+		raw := string(t.Raw)
+		if strings.Contains(raw, "{{resolve:ssm") {
+			add("ssm:GetParameters")
+		}
+		if strings.Contains(raw, "{{resolve:ssm-secure") {
+			add("kms:Decrypt")
+		}
+		if strings.Contains(raw, "{{resolve:secretsmanager") {
+			add("secretsmanager:GetSecretValue", "kms:Decrypt")
+		}
+	}
+	return sortedKeys(set), warnings
+}
+
+// Compact merges Describe*/List* actions per service and drops actions covered
+// by a service wildcard, to keep the policy under the size limit.
+func Compact(actions []string) []string {
+	bySvc := map[string][]string{}
+	for _, a := range actions {
+		svc, _, _ := strings.Cut(a, ":")
+		bySvc[svc] = append(bySvc[svc], a)
+	}
+	set := map[string]bool{}
+	for svc, as := range bySvc {
+		if contains(as, svc+":*") {
+			set[svc+":*"] = true
+			continue
+		}
+		for _, verb := range []string{"Describe", "List"} {
+			n := 0
+			for _, a := range as {
+				if strings.HasPrefix(a, svc+":"+verb) {
+					n++
+				}
+			}
+			if n >= 2 {
+				set[svc+":"+verb+"*"] = true
+			}
+		}
+		for _, a := range as {
+			if !Covered(a, sortedKeys(set)) {
+				set[a] = true
+			}
+		}
+	}
+	return sortedKeys(set)
+}
+
+func contains(xs []string, x string) bool {
+	for _, y := range xs {
+		if y == x {
+			return true
+		}
+	}
+	return false
+}
+
+// Covered reports whether action is matched by any of the granted patterns.
+func Covered(action string, granted []string) bool {
+	a := strings.ToLower(action)
+	for _, g := range granted {
+		if ok, _ := path.Match(strings.ToLower(g), a); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// PolicyDocument is an IAM policy document.
+type PolicyDocument struct {
+	Version   string      `json:"Version"`
+	Statement []Statement `json:"Statement"`
+}
+
+// Statement is an Allow statement on all resources.
+type Statement struct {
+	Sid      string   `json:"Sid"`
+	Effect   string   `json:"Effect"`
+	Action   []string `json:"Action"`
+	Resource string   `json:"Resource"`
+}
+
+func newDoc(i int, actions []string) PolicyDocument {
+	return PolicyDocument{Version: "2012-10-17", Statement: []Statement{{
+		Sid: fmt.Sprintf("CfnExecPolicy%d", i), Effect: "Allow", Action: actions, Resource: "*",
+	}}}
+}
+
+func size(d PolicyDocument) int {
+	b, _ := json.Marshal(d)
+	return len(b)
+}
+
+// Documents splits actions into as few policy documents as fit the size limit.
+func Documents(actions []string) []PolicyDocument {
+	sort.Strings(actions)
+	var docs []PolicyDocument
+	var cur []string
+	for _, a := range actions {
+		if len(cur) > 0 && size(newDoc(len(docs)+1, append(append([]string{}, cur...), a))) > MaxPolicySize {
+			docs = append(docs, newDoc(len(docs)+1, cur))
+			cur = nil
+		}
+		cur = append(cur, a)
+	}
+	if len(cur) > 0 {
+		docs = append(docs, newDoc(len(docs)+1, cur))
+	}
+	return docs
+}
+
+// AllowedActions extracts Allow actions from a policy document.
+func AllowedActions(doc []byte) ([]string, error) {
+	var d struct {
+		Statement json.RawMessage `json:"Statement"`
+	}
+	if err := json.Unmarshal(doc, &d); err != nil {
+		return nil, err
+	}
+	var stmts []map[string]any
+	if err := json.Unmarshal(d.Statement, &stmts); err != nil {
+		var one map[string]any
+		if err := json.Unmarshal(d.Statement, &one); err != nil {
+			return nil, err
+		}
+		stmts = []map[string]any{one}
+	}
+	var out []string
+	for _, s := range stmts {
+		if s["Effect"] != "Allow" {
+			continue
+		}
+		switch a := s["Action"].(type) {
+		case string:
+			out = append(out, a)
+		case []any:
+			for _, x := range a {
+				if str, ok := x.(string); ok {
+					out = append(out, str)
+				}
+			}
+		}
+	}
+	return out, nil
+}

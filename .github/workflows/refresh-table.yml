@@ -1,0 +1,37 @@
+# Regenerate the embedded permission table from the latest CloudFormation schemas
+# and cut a patch release when it changed.
+name: refresh-table
+on:
+  schedule: [{ cron: "17 3 * * *" }]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - run: go run . table
+      - run: go test ./...
+      - id: tag
+        run: |
+          git diff --quiet table.json && exit 0
+          last=$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)
+          IFS=. read -r maj min pat <<<"${last#v}"
+          tag="v$maj.$min.$((pat+1))"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -am "chore: refresh permission table from CloudFormation schemas"
+          git tag "$tag" && git push origin HEAD "$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+  release:
+    needs: refresh
+    if: needs.refresh.outputs.tag != ''
+    uses: ./.github/workflows/release.yml
+    with: { tag: "${{ needs.refresh.outputs.tag }}" }
+    secrets: inherit

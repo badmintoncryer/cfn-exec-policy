@@ -1,0 +1,1 @@
+{"version":"36.0.0","artifacts":{"StageStack":{"type":"aws:cloudformation:stack","properties":{"templateFile":"StageStack.template.json","stackName":"Stage-StageStack"}}}}

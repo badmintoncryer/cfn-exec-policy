@@ -1,0 +1,8 @@
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Role: !GetAtt Role.Arn
+      Code: { ZipFile: !Sub "x" }
+  Role:
+    Type: AWS::IAM::Role

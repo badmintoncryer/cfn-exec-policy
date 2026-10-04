@@ -1,0 +1,31 @@
+name: release
+on:
+  push: { tags: ["v*"] }
+  workflow_call:
+    inputs:
+      tag: { type: string, required: true }
+    secrets:
+      HOMEBREW_TAP_GITHUB_TOKEN: { required: true }
+      NPM_TOKEN: { required: true }
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0, ref: "${{ inputs.tag || github.ref }}" }
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - uses: goreleaser/goreleaser-action@v6
+        with: { args: release --clean }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, registry-url: https://registry.npmjs.org }
+      - run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          scripts/npm-publish.sh "${tag#v}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

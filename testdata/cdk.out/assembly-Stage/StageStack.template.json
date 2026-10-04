@@ -1,0 +1,1 @@
+{"Resources":{"T":{"Type":"AWS::DynamoDB::Table"},"X":{"Type":"Third::Party::Thing"}}}
