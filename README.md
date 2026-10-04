@@ -18,7 +18,7 @@ environment runs with the generated policy instead of administrator access.
 | Command | What it does | Needs AWS credentials |
 |---|---|---|
 | `generate [inputs]` | Print the policy document(s) | no |
-| `check [inputs]` | Exit 1 if the deployed policy is missing actions your templates need — put it in CI before `cdk deploy` | yes (read-only) |
+| `check [inputs]` | Exit 1 if the managed policy is missing actions your templates need — put it in CI before `cdk deploy`. It reads the policy by name; it does not verify the exec role has it attached | yes (read-only) |
 | `apply [inputs]` | Create or update the managed policy, print the `cdk bootstrap` command | yes |
 
 Inputs are `cdk.out` directories (default: `./cdk.out`, including nested
@@ -45,6 +45,10 @@ permissions, so updates, replacements, rollbacks and deletes all work.
 - Custom resources get `lambda:InvokeFunction` / `sns:Publish`; dynamic
   references and SSM parameter types get the matching `ssm`, `secretsmanager`
   and `kms` reads.
+- `iam:PassRole` is granted on `*` without an `iam:PassedToService` condition in
+  this release (whenever a schema lists it, and for the `<service>:*` fallback).
+- `Describe*` / `List*` actions of a service are merged into wildcards to stay
+  under the size limit.
 - Policies over IAM's 6,144-character limit are split into
   `cfn-exec-policy`, `cfn-exec-policy-2`, …
 
