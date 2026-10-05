@@ -45,8 +45,9 @@ permissions, so updates, replacements, rollbacks and deletes all work.
 - Custom resources get `lambda:InvokeFunction` / `sns:Publish`; dynamic
   references and SSM parameter types get the matching `ssm`, `secretsmanager`
   and `kms` reads.
-- `iam:PassRole` is granted on `*` without an `iam:PassedToService` condition in
-  this release (whenever a schema lists it, and for the `<service>:*` fallback).
+- `iam:PassRole` is granted on `*` without an `iam:PassedToService` condition
+  (whenever a schema lists it, and for the `<service>:*` fallback). An opt-in
+  `--pass-role-condition` flag is planned.
 - `Describe*` / `List*` actions of a service are merged into wildcards to stay
   under the size limit.
 - Policies over IAM's 6,144-character limit are split into
