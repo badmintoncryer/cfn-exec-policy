@@ -33,7 +33,7 @@ func RequiredActions(tbl *Table, tpls []*Template) (actions []string, warnings [
 			switch {
 			case r.Type == "AWS::CDK::Metadata":
 			case strings.HasPrefix(r.Type, "Custom::") || r.Type == "AWS::CloudFormation::CustomResource":
-				// CloudFormation invokes the ServiceToken with the service role's credentials.
+				// CloudFormation invokes the ServiceToken with the execution role (verified on bench, #3).
 				add("lambda:InvokeFunction", "sns:Publish")
 			case tbl.Types[r.Type] != nil:
 				add(tbl.Types[r.Type]...)

@@ -141,7 +141,7 @@ func runCheck(args []string) error {
 			*c.policyName, len(missing), strings.Join(missing, "\n  "))
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "%s covers all %d required actions\n", *c.policyName, len(need))
+	fmt.Fprintf(os.Stderr, "%s* covers all %d required actions\n", *c.policyName, len(need))
 	return nil
 }
 
