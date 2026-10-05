@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  id-token: write
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -34,4 +35,3 @@ jobs:
     if: needs.refresh.outputs.tag != ''
     uses: ./.github/workflows/release.yml
     with: { tag: "${{ needs.refresh.outputs.tag }}" }
-    secrets: inherit

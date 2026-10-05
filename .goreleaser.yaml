@@ -12,12 +12,3 @@ archives:
       - { goos: windows, formats: [zip] }
 checksum:
   name_template: checksums.txt
-brews:
-  - repository:
-      owner: badmintoncryer
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    homepage: https://github.com/badmintoncryer/cfn-exec-policy
-    description: Generate the IAM policy for your CloudFormation execution role
-    license: Apache-2.0
-    test: system "#{bin}/cfn-exec-policy", "version"

@@ -65,7 +65,6 @@ that can create IAM roles can still create an administrator role. Closing that
 
 ```sh
 npx cfn-exec-policy …                                    # npm (also: npx cdk-exec-policy)
-brew install badmintoncryer/tap/cfn-exec-policy          # Homebrew
 go install github.com/badmintoncryer/cfn-exec-policy@latest
 ```
 
