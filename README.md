@@ -38,7 +38,9 @@ permissions, so updates, replacements, rollbacks and deletes all work.
   resource you just removed still has its delete permissions.
 - `apply` **never removes** actions already in the policy, because every app
   bootstrapped into the same account and region shares one execution role. Use
-  `--prune` when you know the policy serves only this app.
+  `--prune` when you know the policy serves only this app. If that needs fewer
+  split parts, the extra `cfn-exec-policy-N` policies are emptied (they stay
+  attached until you re-run `cdk bootstrap` with the new list).
 - About 7% of resource types publish no handler permissions (e.g.
   `AWS::CodeBuild::Project`, `AWS::EMR::Cluster`). For those it grants
   `<service>:*` plus `iam:PassRole` and prints a warning.

@@ -123,11 +123,11 @@ func runCheck(args []string) error {
 	if err != nil {
 		return err
 	}
-	have, found, err := clients.existingActions(ctx, *c.policyName)
+	have, parts, err := clients.existingActions(ctx, *c.policyName)
 	if err != nil {
 		return err
 	}
-	if !found {
+	if parts == 0 {
 		return fmt.Errorf("policy %s not found; run `cfn-exec-policy apply` first", clients.policyArn(*c.policyName))
 	}
 	var missing []string
@@ -158,16 +158,21 @@ func runApply(args []string) error {
 	if err != nil {
 		return err
 	}
+	have, parts, err := clients.existingActions(ctx, *c.policyName)
+	if err != nil {
+		return err
+	}
 	if !*prune {
 		// The exec role is shared by every app bootstrapped in this environment,
 		// so keep what other apps needed.
-		have, _, err := clients.existingActions(ctx, *c.policyName)
-		if err != nil {
-			return err
-		}
 		actions = append(actions, have...)
 	}
 	docs := Documents(Compact(actions))
+	// Parts that are no longer needed stay attached to the exec role until it is
+	// re-bootstrapped, so empty them rather than leave their old grants in place.
+	for len(docs) < parts {
+		docs = append(docs, EmptyDocument())
+	}
 	names := policyNames(*c.policyName, len(docs))
 	var arns []string
 	for i, d := range docs {

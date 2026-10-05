@@ -130,6 +130,14 @@ type PolicyDocument struct {
 	Statement []Statement `json:"Statement"`
 }
 
+// EmptyDocument grants nothing. It replaces a split part that is no longer needed,
+// since IAM has no empty policy and the part may still be attached.
+func EmptyDocument() PolicyDocument {
+	return PolicyDocument{Version: "2012-10-17", Statement: []Statement{
+		{Sid: "CfnExecPolicyUnused", Effect: "Deny", Action: []string{"none:null"}, Resource: "*"},
+	}}
+}
+
 // Statement is an Allow statement on all resources.
 type Statement struct {
 	Sid      string   `json:"Sid"`

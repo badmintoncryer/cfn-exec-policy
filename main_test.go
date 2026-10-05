@@ -111,3 +111,11 @@ func TestAllowedActionsRoundTrip(t *testing.T) {
 		t.Fatalf("single statement / string action: %v", got)
 	}
 }
+
+func TestEmptyDocumentGrantsNothing(t *testing.T) {
+	b, _ := json.Marshal(EmptyDocument())
+	got, err := AllowedActions(b)
+	if err != nil || len(got) != 0 {
+		t.Fatalf("EmptyDocument allows %v (err %v)", got, err)
+	}
+}
