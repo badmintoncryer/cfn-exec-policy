@@ -45,7 +45,10 @@ func RequiredActions(tbl *Table, tpls []*Template) (actions []string, warnings [
 				warn("%s is unknown; no permissions granted for it", r.Type)
 			}
 			if r.Type == "AWS::CloudFormation::Stack" {
-				add("s3:GetObject") // nested template URL
+				// The nested template URL, and the change sets CloudFormation drives nested
+				// stacks through (not in the schema; found on bench, #1).
+				add("s3:GetObject", "cloudformation:CreateChangeSet", "cloudformation:DescribeChangeSet",
+					"cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet")
 			}
 		}
 		for _, p := range t.Parameters {

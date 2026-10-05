@@ -26,10 +26,11 @@ func TestCdkOut(t *testing.T) {
 		"sqs:CreateQueue",             // nested stack
 		"dynamodb:CreateTable",        // stage (nested assembly)
 		"codebuild:*", "iam:PassRole", // type without handlers
-		"lambda:InvokeFunction",         // custom resource
-		"ssm:GetParameters",             // BootstrapVersion parameter
-		"secretsmanager:GetSecretValue", // dynamic reference
-		"s3:GetObject",                  // nested template
+		"lambda:InvokeFunction",          // custom resource
+		"ssm:GetParameters",              // BootstrapVersion parameter
+		"secretsmanager:GetSecretValue",  // dynamic reference
+		"s3:GetObject",                   // nested template
+		"cloudformation:CreateChangeSet", // nested stacks run through change sets
 	} {
 		if !Covered(want, actions) {
 			t.Errorf("missing %s", want)

@@ -176,7 +176,7 @@ func runApply(args []string) error {
 		}
 		arns = append(arns, clients.policyArn(names[i]))
 	}
-	fmt.Fprintf(os.Stderr, "updated %s\n\nNow point the execution role at it:\n\n", strings.Join(names, ", "))
+	fmt.Fprintf(os.Stderr, "wrote %s\n\nNow point the execution role at it:\n\n", strings.Join(names, ", "))
 	fmt.Printf("cdk bootstrap aws://%s/%s --cloudformation-execution-policies %s\n",
 		clients.account, clients.cfg.Region, strings.Join(arns, ","))
 	return nil

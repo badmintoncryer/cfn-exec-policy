@@ -1,0 +1,3 @@
+module bench
+
+// Keeps bench/node_modules out of the root module's ./...

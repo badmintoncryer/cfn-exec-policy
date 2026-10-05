@@ -1,1 +1,4 @@
 dist/
+bench/node_modules/
+bench/cdk.out/
+bench/.bin/
