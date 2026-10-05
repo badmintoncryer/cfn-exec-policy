@@ -1,0 +1,14 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Table:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !ImportValue cfnxp-GlueDb
+      TableInput:
+        Name: cfnxp_table
+        Description: !Sub phase ${Phase}
+        TableType: EXTERNAL_TABLE
+        StorageDescriptor:
+          Columns: [{ Name: c, Type: string }]
+          Location: s3://cfnxp-bench-nonexistent/table/

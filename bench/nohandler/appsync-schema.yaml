@@ -1,0 +1,7 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: !ImportValue cfnxp-ApiId
+      Definition: !Sub "type Query { phase${Phase}: String }"

@@ -1,0 +1,9 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Records:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !ImportValue cfnxp-ZoneId
+      RecordSets:
+        - { Name: a.cfnxp-bench-zone.com., Type: A, TTL: !If [Two, "120", "60"], ResourceRecords: [192.0.2.1] }

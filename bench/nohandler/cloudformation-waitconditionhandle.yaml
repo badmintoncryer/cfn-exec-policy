@@ -1,0 +1,3 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Handle: { Type: AWS::CloudFormation::WaitConditionHandle }

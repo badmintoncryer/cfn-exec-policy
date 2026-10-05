@@ -3,3 +3,4 @@ bench/node_modules/
 bench/cdk.out/
 bench/.bin/
 /cfn-exec-policy
+bench/nohandler/windows.log

@@ -1,0 +1,30 @@
+# Resources the no-handler type stacks reference (issue #5). Deploy first.
+Resources:
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: codebuild.amazonaws.com }, Action: sts:AssumeRole }]
+  GlueDb:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput: { Name: cfnxp_bench }
+  Api:
+    Type: AWS::AppSync::GraphQLApi
+    Properties: { Name: cfnxp-bench, AuthenticationType: API_KEY }
+  Zone:
+    Type: AWS::Route53::HostedZone
+    Properties: { Name: cfnxp-bench-zone.com }
+  User1: { Type: AWS::IAM::User }
+  User2: { Type: AWS::IAM::User }
+  Group: { Type: AWS::IAM::Group }
+Outputs:
+  CodeBuildRoleArn: { Value: !GetAtt CodeBuildRole.Arn, Export: { Name: cfnxp-CodeBuildRoleArn } }
+  GlueDb: { Value: !Ref GlueDb, Export: { Name: cfnxp-GlueDb } }
+  ApiId: { Value: !GetAtt Api.ApiId, Export: { Name: cfnxp-ApiId } }
+  ZoneId: { Value: !Ref Zone, Export: { Name: cfnxp-ZoneId } }
+  User1: { Value: !Ref User1, Export: { Name: cfnxp-User1 } }
+  User2: { Value: !Ref User2, Export: { Name: cfnxp-User2 } }
+  Group: { Value: !Ref Group, Export: { Name: cfnxp-Group } }

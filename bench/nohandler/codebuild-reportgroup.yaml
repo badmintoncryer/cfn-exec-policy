@@ -1,0 +1,9 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  ReportGroup:
+    Type: AWS::CodeBuild::ReportGroup
+    Properties:
+      Type: TEST
+      ExportConfig: { ExportConfigType: NO_EXPORT }
+      DeleteReports: true
+      Tags: [{ Key: phase, Value: !Ref Phase }]

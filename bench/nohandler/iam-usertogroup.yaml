@@ -1,0 +1,8 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Membership:
+    Type: AWS::IAM::UserToGroupAddition
+    Properties:
+      GroupName: !ImportValue cfnxp-Group
+      Users: !If [Two, [!ImportValue cfnxp-User1, !ImportValue cfnxp-User2], [!ImportValue cfnxp-User1]]

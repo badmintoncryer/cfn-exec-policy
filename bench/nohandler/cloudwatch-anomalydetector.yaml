@@ -1,0 +1,8 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Detector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      SingleMetricAnomalyDetector: { Namespace: AWS/Lambda, MetricName: Invocations, Stat: Sum }
+      Configuration: { MetricTimeZone: !If [Two, Asia/Tokyo, UTC] }
