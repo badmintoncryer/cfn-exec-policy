@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -197,5 +199,29 @@ func TestDeployedNestedStacks(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(types, " "), "AWS::SNS::Topic") {
 		t.Errorf("nested-of-nested template not fetched: %v", types)
+	}
+}
+
+func TestBuildTableIncludesTaggingPermissions(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, body := range map[string]string{
+		"aws-x-y.json": `{"typeName":"AWS::X::Y","handlers":{"create":{"permissions":["x:CreateY","x:TagResource"]}},
+			"tagging":{"taggable":true,"permissions":["x:TagResource","x:UntagResource"]}}`,
+		"aws-x-nohandlers.json": `{"typeName":"AWS::X::NoHandlers","tagging":{"permissions":["x:TagResource"]}}`,
+	} {
+		w, _ := zw.Create(name)
+		w.Write([]byte(body))
+	}
+	zw.Close()
+	tbl, err := BuildTable(buf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !Covered("x:UntagResource", tbl.Types["AWS::X::Y"]) {
+		t.Errorf("tagging permissions missing: %v", tbl.Types["AWS::X::Y"])
+	}
+	if tbl.Types["AWS::X::NoHandlers"] != nil {
+		t.Errorf("a type without handlers must stay out of the table (it falls back): %v", tbl.Types["AWS::X::NoHandlers"])
 	}
 }

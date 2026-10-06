@@ -73,6 +73,9 @@ func BuildTable(zipBytes []byte) (*Table, error) {
 			Handlers map[string]struct {
 				Permissions []string `json:"permissions"`
 			} `json:"handlers"`
+			Tagging struct {
+				Permissions []string `json:"permissions"`
+			} `json:"tagging"`
 		}
 		err = json.NewDecoder(rc).Decode(&s)
 		rc.Close()
@@ -87,6 +90,11 @@ func BuildTable(zipBytes []byte) (*Table, error) {
 		}
 		if len(set) == 0 {
 			continue
+		}
+		// Changing or removing tags (Tags.of in CDK, stack tags) can need actions the
+		// handler lists leave out, e.g. UntagResource.
+		for _, p := range s.Tagging.Permissions {
+			set[p] = true
 		}
 		t.Types[s.TypeName] = sortedKeys(set)
 		ns := namespace(s.TypeName)

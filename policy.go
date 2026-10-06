@@ -139,7 +139,8 @@ type PolicyDocument struct {
 // type needs nothing. Authorization-only checks never show up in CloudTrail either
 // (EC2 tag-on-create needs ec2:CreateTags); the verify pass catches those. CloudTrail event names are mapped to IAM actions where they
 // differ (Budgets). Dynamic references are left out: RequiredActions adds those from
-// the template. Measured 2026-10-06 (#5).
+// the template. Tag actions for Budgets and MediaLive::InputSecurityGroup come from
+// the IAM docs (bench templates did not change tags in place). Measured 2026-10-06 (#5).
 var handWritten = map[string][]string{
 	"AWS::AppSync::GraphQLSchema":              {"appsync:GetSchemaCreationStatus", "appsync:StartSchemaCreation"},
 	"AWS::CloudFormation::WaitConditionHandle": {},
@@ -157,7 +158,7 @@ var handWritten = map[string][]string{
 		"autoscaling-plans:DescribeScalingPlans", "autoscaling-plans:UpdateScalingPlan", "autoscaling:DeletePolicy",
 		"autoscaling:DescribeAutoScalingGroups", "autoscaling:DescribePolicies", "autoscaling:PutScalingPolicy", "autoscaling:UpdateAutoScalingGroup",
 		"cloudwatch:DeleteAlarms", "cloudwatch:DescribeAlarms", "cloudwatch:PutMetricAlarm", "iam:CreateServiceLinkedRole"},
-	"AWS::Budgets::Budget":       {"budgets:ModifyBudget", "budgets:ViewBudget"},
+	"AWS::Budgets::Budget":       {"budgets:ListTagsForResource", "budgets:ModifyBudget", "budgets:TagResource", "budgets:UntagResource", "budgets:ViewBudget"},
 	"AWS::CloudFormation::Macro": {"iam:PassRole"},
 	"AWS::DAX::SubnetGroup":      {"dax:CreateSubnetGroup", "dax:DeleteSubnetGroup", "dax:UpdateSubnetGroup"},
 	"AWS::DocDB::DBCluster": {"rds:AddTagsToResource", "rds:CreateDBCluster", "rds:DeleteDBCluster",
@@ -169,7 +170,7 @@ var handWritten = map[string][]string{
 		"lakeformation:UpdateResource"},
 	"AWS::MediaLive::Input": {"iam:PassRole", "medialive:CreateInput", "medialive:CreateTags", "medialive:DeleteInput",
 		"medialive:DeleteTags", "medialive:DescribeInput", "medialive:UpdateInput"},
-	"AWS::MediaLive::InputSecurityGroup": {"medialive:CreateInputSecurityGroup", "medialive:DeleteInputSecurityGroup"},
+	"AWS::MediaLive::InputSecurityGroup": {"medialive:CreateInputSecurityGroup", "medialive:CreateTags", "medialive:DeleteInputSecurityGroup", "medialive:DeleteTags"},
 	"AWS::CloudFormation::WaitCondition": {},
 	"AWS::EC2::ClientVpnAuthorizationRule": {"ec2:AuthorizeClientVpnIngress", "ec2:DescribeClientVpnAuthorizationRules",
 		"ec2:RevokeClientVpnIngress"},

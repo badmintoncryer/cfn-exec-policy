@@ -183,6 +183,7 @@
    "access-analyzer:GetAnalyzer",
    "access-analyzer:ListAnalyzers",
    "access-analyzer:ListArchiveRules",
+   "access-analyzer:ListTagsForResource",
    "access-analyzer:TagResource",
    "access-analyzer:UntagResource",
    "access-analyzer:UpdateAnalyzer",
@@ -667,6 +668,7 @@
    "apigateway:GET",
    "apigateway:PATCH",
    "apigateway:POST",
+   "apigateway:PUT",
    "apigateway:TagResource",
    "apigateway:unTagResource",
    "iam:CreateServiceLinkedRole",
@@ -698,6 +700,7 @@
    "appconfig:StartDeployment",
    "appconfig:StopDeployment",
    "appconfig:TagResource",
+   "appconfig:UntagResource",
    "kms:GenerateDataKey"
   ],
   "AWS::AppConfig::DeploymentStrategy": [
@@ -853,19 +856,25 @@
    "apprunner:CreateAutoScalingConfiguration",
    "apprunner:DeleteAutoScalingConfiguration",
    "apprunner:DescribeAutoScalingConfiguration",
-   "apprunner:TagResource"
+   "apprunner:ListTagsForResource",
+   "apprunner:TagResource",
+   "apprunner:UntagResource"
   ],
   "AWS::AppRunner::ObservabilityConfiguration": [
    "apprunner:CreateObservabilityConfiguration",
    "apprunner:DeleteObservabilityConfiguration",
    "apprunner:DescribeObservabilityConfiguration",
-   "apprunner:TagResource"
+   "apprunner:ListTagsForResource",
+   "apprunner:TagResource",
+   "apprunner:UntagResource"
   ],
   "AWS::AppRunner::Service": [
    "apprunner:CreateService",
    "apprunner:DeleteService",
    "apprunner:DescribeService",
+   "apprunner:ListTagsForResource",
    "apprunner:TagResource",
+   "apprunner:UntagResource",
    "apprunner:UpdateService",
    "events:PutRule",
    "events:PutTargets",
@@ -881,7 +890,9 @@
    "apprunner:CreateVpcConnector",
    "apprunner:DeleteVpcConnector",
    "apprunner:DescribeVpcConnector",
+   "apprunner:ListTagsForResource",
    "apprunner:TagResource",
+   "apprunner:UntagResource",
    "ec2:DescribeSecurityGroups",
    "ec2:DescribeSubnets",
    "iam:CreateServiceLinkedRole"
@@ -890,7 +901,9 @@
    "apprunner:CreateVpcIngressConnection",
    "apprunner:DeleteVpcIngressConnection",
    "apprunner:DescribeVpcIngressConnection",
+   "apprunner:ListTagsForResource",
    "apprunner:TagResource",
+   "apprunner:UntagResource",
    "apprunner:UpdateVpcIngressConnection",
    "ec2:DescribeSubnets",
    "ec2:DescribeVpcEndpoints",
@@ -981,6 +994,7 @@
    "appstream:StartImageBuilder",
    "appstream:StopImageBuilder",
    "appstream:TagResource",
+   "appstream:UntagResource",
    "iam:CreateServiceLinkedRole",
    "iam:DeleteServiceLinkedRole",
    "iam:GetServiceLinkedRoleDeletionStatus",
@@ -1112,6 +1126,7 @@
    "apptest:ListTagsForResource",
    "apptest:TagResource",
    "apptest:UnTagResource",
+   "apptest:UntagResource",
    "apptest:UpdateTestCase"
   ],
   "AWS::ApplicationAutoScaling::ScalableTarget": [
@@ -1195,6 +1210,14 @@
    "application-signals:DeleteGroupingConfiguration",
    "application-signals:ListGroupingAttributeDefinitions",
    "application-signals:PutGroupingConfiguration"
+  ],
+  "AWS::ApplicationSignals::InstrumentationConfig": [
+   "application-signals:CreateInstrumentationConfiguration",
+   "application-signals:DeleteInstrumentationConfiguration",
+   "application-signals:GetInstrumentationConfiguration",
+   "application-signals:ListTagsForResource",
+   "application-signals:TagResource",
+   "application-signals:UntagResource"
   ],
   "AWS::ApplicationSignals::ServiceLevelObjective": [
    "application-signals:BatchUpdateExclusionWindows",
@@ -1623,6 +1646,7 @@
    "backup-gateway:ListHypervisors",
    "backup-gateway:ListTagsForResource",
    "backup-gateway:TagResource",
+   "backup-gateway:UntagResource",
    "backup-gateway:UpdateHypervisor",
    "kms:CreateGrant",
    "kms:Decrypt",
@@ -1789,6 +1813,7 @@
    "bedrock:GetAutomatedReasoningPolicy",
    "bedrock:ListTagsForResource",
    "bedrock:TagResource",
+   "bedrock:UntagResource",
    "kms:Decrypt",
    "kms:DescribeKey",
    "kms:GenerateDataKey"
@@ -3595,6 +3620,7 @@
    "codeguru-reviewer:DisassociateRepository",
    "codeguru-reviewer:ListTagsForResource",
    "codeguru-reviewer:TagResource",
+   "codeguru-reviewer:UntagResource",
    "codestar-connections:ListBranches",
    "codestar-connections:ListRepositories",
    "codestar-connections:ListTagsForResource",
@@ -3909,6 +3935,7 @@
    "aco-automation:CreateAutomationRule",
    "aco-automation:DeleteAutomationRule",
    "aco-automation:GetAutomationRule",
+   "aco-automation:ListTagsForResource",
    "aco-automation:TagResource",
    "aco-automation:UntagResource",
    "aco-automation:UpdateAutomationRule"
@@ -4030,6 +4057,7 @@
    "connect:CreateContactFlow",
    "connect:DeleteContactFlow",
    "connect:DescribeContactFlow",
+   "connect:ListTagsForResource",
    "connect:TagResource",
    "connect:UntagResource",
    "connect:UpdateContactFlowContent",
@@ -4039,6 +4067,7 @@
    "connect:CreateContactFlowModule",
    "connect:DeleteContactFlowModule",
    "connect:DescribeContactFlowModule",
+   "connect:ListTagsForResource",
    "connect:TagResource",
    "connect:UntagResource",
    "connect:UpdateContactFlowModuleContent",
@@ -4109,6 +4138,7 @@
    "connect:DeleteEvaluationForm",
    "connect:DescribeEvaluationForm",
    "connect:ListEvaluationFormVersions",
+   "connect:ListTagsForResource",
    "connect:TagResource",
    "connect:UntagResource",
    "connect:UpdateEvaluationForm"
@@ -4133,6 +4163,7 @@
    "connect:DeleteInstance",
    "connect:DescribeInstance",
    "connect:ListInstanceAttributes",
+   "connect:ListTagsForResource",
    "connect:TagResource",
    "connect:UntagResource",
    "connect:UpdateInstanceAttribute",
@@ -4343,6 +4374,7 @@
    "connect:CreateTaskTemplate",
    "connect:DeleteTaskTemplate",
    "connect:GetTaskTemplate",
+   "connect:ListTagsForResource",
    "connect:ListTaskTemplates",
    "connect:TagResource",
    "connect:UntagResource",
@@ -4352,6 +4384,7 @@
    "connect:CreateTestCase",
    "connect:DeleteTestCase",
    "connect:DescribeTestCase",
+   "connect:ListTagsForResource",
    "connect:TagResource",
    "connect:UntagResource",
    "connect:UpdateTestCase"
@@ -4849,6 +4882,15 @@
    "drs:UntagResource",
    "drs:UpdateLaunchConfigurationTemplate"
   ],
+  "AWS::DRS::RecoveryPlan": [
+   "drs:CreateRecoveryPlan",
+   "drs:DeleteRecoveryPlan",
+   "drs:GetRecoveryPlan",
+   "drs:ListTagsForResource",
+   "drs:TagResource",
+   "drs:UntagResource",
+   "drs:UpdateRecoveryPlan"
+  ],
   "AWS::DRS::ReplicationConfigurationTemplate": [
    "drs:CreateReplicationConfigurationTemplate",
    "drs:DeleteReplicationConfigurationTemplate",
@@ -4904,6 +4946,7 @@
    "databrew:CreateDataset",
    "databrew:DeleteDataset",
    "databrew:DescribeDataset",
+   "databrew:ListTagsForResource",
    "databrew:TagResource",
    "databrew:UntagResource",
    "databrew:UpdateDataset",
@@ -4917,6 +4960,7 @@
    "databrew:CreateRecipeJob",
    "databrew:DeleteJob",
    "databrew:DescribeJob",
+   "databrew:ListTagsForResource",
    "databrew:TagResource",
    "databrew:UntagResource",
    "databrew:UpdateProfileJob",
@@ -4928,6 +4972,7 @@
    "databrew:CreateProject",
    "databrew:DeleteProject",
    "databrew:DescribeProject",
+   "databrew:ListTagsForResource",
    "databrew:TagResource",
    "databrew:UntagResource",
    "databrew:UpdateProject",
@@ -4949,6 +4994,7 @@
    "databrew:CreateRuleset",
    "databrew:DeleteRuleset",
    "databrew:DescribeRuleset",
+   "databrew:ListTagsForResource",
    "databrew:TagResource",
    "databrew:UntagResource",
    "databrew:UpdateRuleset",
@@ -4959,6 +5005,7 @@
    "databrew:CreateSchedule",
    "databrew:DeleteSchedule",
    "databrew:DescribeSchedule",
+   "databrew:ListTagsForResource",
    "databrew:TagResource",
    "databrew:UntagResource",
    "databrew:UpdateSchedule",
@@ -6011,6 +6058,7 @@
    "ec2:CreateTags",
    "ec2:DeleteTags",
    "ec2:DescribeAddresses",
+   "ec2:DescribeTags",
    "ec2:DisassociateAddress",
    "ec2:ReleaseAddress"
   ],
@@ -7139,8 +7187,10 @@
    "ecs:DescribeServices",
    "ecs:DescribeTaskDefinition",
    "ecs:ListServiceDeployments",
+   "ecs:ListTagsForResource",
    "ecs:RegisterTaskDefinition",
    "ecs:TagResource",
+   "ecs:UntagResource",
    "ecs:UpdateExpressGatewayService",
    "iam:PassRole"
   ],
@@ -7175,6 +7225,7 @@
    "ecs:CreateTaskSet",
    "ecs:DeleteTaskSet",
    "ecs:DescribeTaskSets",
+   "ecs:ListTagsForResource",
    "ecs:TagResource",
    "ecs:UntagResource",
    "ecs:UpdateTaskSet"
@@ -7459,7 +7510,8 @@
    "emr-containers:DeleteJobTemplate",
    "emr-containers:DescribeJobTemplate",
    "emr-containers:ListTagsForResource",
-   "emr-containers:TagResource"
+   "emr-containers:TagResource",
+   "emr-containers:UntagResource"
   ],
   "AWS::EMRContainers::SecurityConfiguration": [
    "emr-containers:CreateSecurityConfiguration",
@@ -8317,6 +8369,17 @@
    "s3:GetAccessPoint",
    "s3:PutAccessPointPolicy"
   ],
+  "AWS::FSx::Volume": [
+   "fsx:CreateVolume",
+   "fsx:CreateVolumeFromBackup",
+   "fsx:DeleteVolume",
+   "fsx:DescribeStorageVirtualMachines",
+   "fsx:DescribeVolumes",
+   "fsx:ListTagsForResource",
+   "fsx:TagResource",
+   "fsx:UntagResource",
+   "fsx:UpdateVolume"
+  ],
   "AWS::FinSpace::Environment": [
    "finspace:CreateEnvironment",
    "finspace:DeleteEnvironment",
@@ -8949,6 +9012,7 @@
    "greengrass:CreateDeployment",
    "greengrass:DeleteDeployment",
    "greengrass:GetDeployment",
+   "greengrass:ListTagsForResource",
    "greengrass:TagResource",
    "greengrass:UntagResource",
    "iot:CancelJob",
@@ -9046,6 +9110,7 @@
    "guardduty:GetIPSet",
    "guardduty:ListDetectors",
    "guardduty:ListIPSets",
+   "guardduty:ListTagsForResource",
    "guardduty:TagResource",
    "guardduty:UntagResource",
    "guardduty:UpdateIPSet",
@@ -9056,6 +9121,7 @@
    "guardduty:CreateMalwareProtectionPlan",
    "guardduty:DeleteMalwareProtectionPlan",
    "guardduty:GetMalwareProtectionPlan",
+   "guardduty:ListTagsForResource",
    "guardduty:TagResource",
    "guardduty:UntagResource",
    "guardduty:UpdateMalwareProtectionPlan",
@@ -9091,6 +9157,7 @@
    "guardduty:DeleteThreatEntitySet",
    "guardduty:GetThreatEntitySet",
    "guardduty:ListDetectors",
+   "guardduty:ListTagsForResource",
    "guardduty:ListThreatEntitySets",
    "guardduty:TagResource",
    "guardduty:UntagResource",
@@ -9102,6 +9169,7 @@
    "guardduty:DeleteThreatIntelSet",
    "guardduty:GetThreatIntelSet",
    "guardduty:ListDetectors",
+   "guardduty:ListTagsForResource",
    "guardduty:ListThreatIntelSets",
    "guardduty:TagResource",
    "guardduty:UntagResource",
@@ -9114,6 +9182,7 @@
    "guardduty:DeleteTrustedEntitySet",
    "guardduty:GetTrustedEntitySet",
    "guardduty:ListDetectors",
+   "guardduty:ListTagsForResource",
    "guardduty:ListTrustedEntitySets",
    "guardduty:TagResource",
    "guardduty:UntagResource",
@@ -9252,6 +9321,7 @@
    "iam:GetRolePolicy",
    "iam:ListAttachedRolePolicies",
    "iam:ListRolePolicies",
+   "iam:ListRoleTags",
    "iam:PutRolePermissionsBoundary",
    "iam:PutRolePolicy",
    "iam:TagRole",
@@ -9329,6 +9399,16 @@
    "iam:ListVirtualMFADevices",
    "iam:TagMFADevice",
    "iam:UntagMFADevice"
+  ],
+  "AWS::IVS::AdConfiguration": [
+   "ivs:CreateAdConfiguration",
+   "ivs:DeleteAdConfiguration",
+   "ivs:GetAdConfiguration",
+   "ivs:ListTagsForResource",
+   "ivs:TagResource",
+   "ivs:UntagResource",
+   "ivs:UpdateAdConfiguration",
+   "mediatailor:GetPlaybackConfiguration"
   ],
   "AWS::IVS::Channel": [
    "ivs:CreateChannel",
@@ -9857,6 +9937,7 @@
    "iot:DescribeJobTemplate",
    "iot:ListTagsForResource",
    "iot:TagResource",
+   "iot:UntagResource",
    "s3:GetObject"
   ],
   "AWS::IoT::Logging": [
@@ -9886,6 +9967,11 @@
    "iot:TagResource",
    "iot:UntagResource",
    "kms:Decrypt"
+  ],
+  "AWS::IoT::PolicyPrincipalAttachment": [
+   "iot:AttachPrincipalPolicy",
+   "iot:DetachPrincipalPolicy",
+   "iot:ListAttachedPolicies"
   ],
   "AWS::IoT::ProvisioningTemplate": [
    "iam:GetRole",
@@ -10397,7 +10483,8 @@
    "iottwinmaker:GetSyncJob",
    "iottwinmaker:GetWorkspace",
    "iottwinmaker:ListTagsForResource",
-   "iottwinmaker:TagResource"
+   "iottwinmaker:TagResource",
+   "iottwinmaker:UntagResource"
   ],
   "AWS::IoTTwinMaker::Workspace": [
    "iam:PassRole",
@@ -10878,6 +10965,7 @@
    "lambda:GetFunctionScalingConfig",
    "lambda:GetLayerVersion",
    "lambda:GetRuntimeManagementConfig",
+   "lambda:ListTags",
    "lambda:PassCapacityProvider",
    "lambda:PublishVersion",
    "lambda:PutFunctionCodeSigningConfig",
@@ -11819,6 +11907,7 @@
    "kafka:DeleteCluster",
    "kafka:DescribeCluster",
    "kafka:DescribeClusterOperation",
+   "kafka:ListTagsForResource",
    "kafka:TagResource",
    "kafka:UntagResource",
    "kafka:UpdateBrokerCount",
@@ -11895,7 +11984,9 @@
    "kafka:CreateClusterV2",
    "kafka:DeleteCluster",
    "kafka:DescribeClusterV2",
-   "kafka:TagResource"
+   "kafka:ListTagsForResource",
+   "kafka:TagResource",
+   "kafka:UntagResource"
   ],
   "AWS::MSK::Topic": [
    "kafka-cluster:AlterTopic",
@@ -11925,6 +12016,7 @@
    "kafka:CreateVpcConnection",
    "kafka:DeleteVpcConnection",
    "kafka:DescribeVpcConnection",
+   "kafka:ListTagsForResource",
    "kafka:TagResource",
    "kafka:UntagResource",
    "kms:CreateGrant",
@@ -12341,7 +12433,9 @@
    "mediapackage-vod:CreateAsset",
    "mediapackage-vod:DeleteAsset",
    "mediapackage-vod:DescribeAsset",
-   "mediapackage-vod:TagResource"
+   "mediapackage-vod:ListTagsForResource",
+   "mediapackage-vod:TagResource",
+   "mediapackage-vod:UntagResource"
   ],
   "AWS::MediaPackage::Channel": [
    "iam:CreateServiceLinkedRole",
@@ -12349,7 +12443,9 @@
    "mediapackage:CreateChannel",
    "mediapackage:DeleteChannel",
    "mediapackage:DescribeChannel",
+   "mediapackage:ListTagsForResource",
    "mediapackage:TagResource",
+   "mediapackage:UntagResource",
    "mediapackage:UpdateChannel"
   ],
   "AWS::MediaPackage::OriginEndpoint": [
@@ -12369,7 +12465,9 @@
    "mediapackage-vod:CreatePackagingConfiguration",
    "mediapackage-vod:DeletePackagingConfiguration",
    "mediapackage-vod:DescribePackagingConfiguration",
-   "mediapackage-vod:TagResource"
+   "mediapackage-vod:ListTagsForResource",
+   "mediapackage-vod:TagResource",
+   "mediapackage-vod:UntagResource"
   ],
   "AWS::MediaPackage::PackagingGroup": [
    "iam:CreateServiceLinkedRole",
@@ -12378,7 +12476,9 @@
    "mediapackage-vod:CreatePackagingGroup",
    "mediapackage-vod:DeletePackagingGroup",
    "mediapackage-vod:DescribePackagingGroup",
+   "mediapackage-vod:ListTagsForResource",
    "mediapackage-vod:TagResource",
+   "mediapackage-vod:UntagResource",
    "mediapackage-vod:UpdatePackagingGroup"
   ],
   "AWS::MediaPackageV2::Channel": [
@@ -12773,6 +12873,7 @@
    "network-firewall:DescribeFirewallPolicy",
    "network-firewall:ListRuleGroups",
    "network-firewall:ListTLSInspectionConfigurations",
+   "network-firewall:ListTagsForResource",
    "network-firewall:ListTagsForResources",
    "network-firewall:TagResource",
    "network-firewall:UntagResource",
@@ -12802,6 +12903,7 @@
    "network-firewall:DeleteRuleGroup",
    "network-firewall:DescribeRuleGroup",
    "network-firewall:ListRuleGroups",
+   "network-firewall:ListTagsForResource",
    "network-firewall:ListTagsForResources",
    "network-firewall:TagResource",
    "network-firewall:UntagResource",
@@ -12812,6 +12914,7 @@
    "network-firewall:CreateTLSInspectionConfiguration",
    "network-firewall:DeleteTLSInspectionConfiguration",
    "network-firewall:DescribeTLSInspectionConfiguration",
+   "network-firewall:ListTagsForResource",
    "network-firewall:ListTagsForResources",
    "network-firewall:TagResource",
    "network-firewall:UntagResource",
@@ -13907,7 +14010,8 @@
    "personalize:DescribeDatasetImportJob",
    "personalize:ListDatasetImportJobs",
    "personalize:ListTagsForResource",
-   "personalize:TagResource"
+   "personalize:TagResource",
+   "personalize:UntagResource"
   ],
   "AWS::Personalize::DatasetGroup": [
    "iam:PassRole",
@@ -13915,7 +14019,8 @@
    "personalize:DeleteDatasetGroup",
    "personalize:DescribeDatasetGroup",
    "personalize:ListTagsForResource",
-   "personalize:TagResource"
+   "personalize:TagResource",
+   "personalize:UntagResource"
   ],
   "AWS::Personalize::EventTracker": [
    "personalize:CreateEventTracker",
@@ -13950,14 +14055,16 @@
    "personalize:DeleteSchema",
    "personalize:DescribeSchema",
    "personalize:ListTagsForResource",
-   "personalize:TagResource"
+   "personalize:TagResource",
+   "personalize:UntagResource"
   ],
   "AWS::Personalize::Solution": [
    "personalize:CreateSolution",
    "personalize:DeleteSolution",
    "personalize:DescribeSolution",
    "personalize:ListTagsForResource",
-   "personalize:TagResource"
+   "personalize:TagResource",
+   "personalize:UntagResource"
   ],
   "AWS::Pinpoint::InAppTemplate": [
    "mobiletargeting:CreateInAppTemplate",
@@ -13986,6 +14093,7 @@
    "pipes:CreatePipe",
    "pipes:DeletePipe",
    "pipes:DescribePipe",
+   "pipes:ListTagsForResource",
    "pipes:TagResource",
    "pipes:UntagResource",
    "pipes:UpdatePipe",
@@ -14581,6 +14689,15 @@
    "rds:RestoreDBClusterToPointInTime",
    "secretsmanager:CreateSecret",
    "secretsmanager:TagResource"
+  ],
+  "AWS::RDS::DBClusterEndpoint": [
+   "rds:AddTagsToResource",
+   "rds:CreateDBClusterEndpoint",
+   "rds:DeleteDBClusterEndpoint",
+   "rds:DescribeDBClusterEndpoints",
+   "rds:ListTagsForResource",
+   "rds:ModifyDBClusterEndpoint",
+   "rds:RemoveTagsFromResource"
   ],
   "AWS::RDS::DBClusterParameterGroup": [
    "iam:CreateServiceLinkedRole",
@@ -15776,6 +15893,7 @@
    "route53-recovery-control-config:DescribeCluster",
    "route53-recovery-control-config:ListTagsForResource",
    "route53-recovery-control-config:TagResource",
+   "route53-recovery-control-config:UntagResource",
    "route53-recovery-control-config:UpdateCluster"
   ],
   "AWS::Route53RecoveryControl::ControlPanel": [
@@ -15811,6 +15929,7 @@
    "route53-recovery-readiness:CreateCell",
    "route53-recovery-readiness:DeleteCell",
    "route53-recovery-readiness:GetCell",
+   "route53-recovery-readiness:ListTagsForResource",
    "route53-recovery-readiness:ListTagsForResources",
    "route53-recovery-readiness:TagResource",
    "route53-recovery-readiness:UntagResource",
@@ -15831,6 +15950,7 @@
    "route53-recovery-readiness:DeleteRecoveryGroup",
    "route53-recovery-readiness:GetCell",
    "route53-recovery-readiness:GetRecoveryGroup",
+   "route53-recovery-readiness:ListTagsForResource",
    "route53-recovery-readiness:ListTagsForResources",
    "route53-recovery-readiness:TagResource",
    "route53-recovery-readiness:UntagResource",
@@ -15842,6 +15962,7 @@
    "route53-recovery-readiness:GetCell",
    "route53-recovery-readiness:GetRecoveryGroup",
    "route53-recovery-readiness:GetResourceSet",
+   "route53-recovery-readiness:ListTagsForResource",
    "route53-recovery-readiness:ListTagsForResources",
    "route53-recovery-readiness:TagResource",
    "route53-recovery-readiness:UntagResource",
@@ -16027,6 +16148,7 @@
    "s3:DeleteBucketMetadataTableConfiguration",
    "s3:DeleteBucketMetricsConfiguration",
    "s3:DeleteBucketReplication",
+   "s3:DeleteBucketTagging",
    "s3:DeleteBucketWebsite",
    "s3:DeleteObject",
    "s3:GetAccelerateConfiguration",
@@ -16392,6 +16514,7 @@
    "ses:DeleteConfigurationSet",
    "ses:DescribeConfigurationSet",
    "ses:GetConfigurationSet",
+   "ses:ListTagsForResource",
    "ses:PutConfigurationSetArchivingOptions",
    "ses:PutConfigurationSetDeliveryOptions",
    "ses:PutConfigurationSetReputationOptions",
@@ -16423,6 +16546,7 @@
    "ses:CreateCustomVerificationEmailTemplate",
    "ses:DeleteCustomVerificationEmailTemplate",
    "ses:GetCustomVerificationEmailTemplate",
+   "ses:ListTagsForResource",
    "ses:TagResource",
    "ses:UntagResource",
    "ses:UpdateCustomVerificationEmailTemplate"
@@ -16578,6 +16702,7 @@
    "ses:DeleteTenant",
    "ses:DeleteTenantResourceAssociation",
    "ses:GetTenant",
+   "ses:ListTagsForResource",
    "ses:ListTenantResources",
    "ses:TagResource",
    "ses:UntagResource"
@@ -16603,6 +16728,15 @@
    "sms-voice:TagResource",
    "sms-voice:UntagResource",
    "sms-voice:UpdateEventDestination"
+  ],
+  "AWS::SMSVOICE::NotifyConfiguration": [
+   "sms-voice:CreateNotifyConfiguration",
+   "sms-voice:DeleteNotifyConfiguration",
+   "sms-voice:DescribeNotifyConfigurations",
+   "sms-voice:ListTagsForResource",
+   "sms-voice:TagResource",
+   "sms-voice:UntagResource",
+   "sms-voice:UpdateNotifyConfiguration"
   ],
   "AWS::SMSVOICE::OptOutList": [
    "sms-voice:CreateOptOutList",
@@ -16652,6 +16786,16 @@
    "sms-voice:UntagResource",
    "sms-voice:UpdateProtectConfiguration",
    "sms-voice:UpdateProtectConfigurationCountryRuleSet"
+  ],
+  "AWS::SMSVOICE::RcsAgent": [
+   "iam:PassRole",
+   "sms-voice:CreateRcsAgent",
+   "sms-voice:DeleteRcsAgent",
+   "sms-voice:DescribeRcsAgents",
+   "sms-voice:ListTagsForResource",
+   "sms-voice:TagResource",
+   "sms-voice:UntagResource",
+   "sms-voice:UpdateRcsAgent"
   ],
   "AWS::SMSVOICE::Registration": [
    "sms-voice:CreateRegistration",
@@ -17875,6 +18019,7 @@
    "securitylake:CreateDataLake",
    "securitylake:DeleteDataLake",
    "securitylake:List*",
+   "securitylake:ListTagsForResource",
    "securitylake:TagResource",
    "securitylake:UntagResource",
    "securitylake:UpdateDataLake",
@@ -18245,6 +18390,7 @@
   "AWS::Signer::SigningProfile": [
    "signer:CancelSigningProfile",
    "signer:GetSigningProfile",
+   "signer:ListTagsForResource",
    "signer:PutSigningProfile",
    "signer:TagResource",
    "signer:UntagResource"
@@ -18559,6 +18705,7 @@
    "transfer:CreateAgreement",
    "transfer:DeleteAgreement",
    "transfer:DescribeAgreement",
+   "transfer:ListTagsForResource",
    "transfer:TagResource",
    "transfer:UnTagResource",
    "transfer:UpdateAgreement"
@@ -18567,6 +18714,7 @@
    "transfer:DeleteCertificate",
    "transfer:DescribeCertificate",
    "transfer:ImportCertificate",
+   "transfer:ListTagsForResource",
    "transfer:TagResource",
    "transfer:UnTagResource",
    "transfer:UpdateCertificate"
@@ -18576,6 +18724,7 @@
    "transfer:CreateConnector",
    "transfer:DeleteConnector",
    "transfer:DescribeConnector",
+   "transfer:ListTagsForResource",
    "transfer:TagResource",
    "transfer:UnTagResource",
    "transfer:UpdateConnector",
@@ -18596,6 +18745,7 @@
    "transfer:CreateProfile",
    "transfer:DeleteProfile",
    "transfer:DescribeProfile",
+   "transfer:ListTagsForResource",
    "transfer:TagResource",
    "transfer:UnTagResource",
    "transfer:UpdateProfile"
@@ -18625,6 +18775,7 @@
    "transfer:CreateServer",
    "transfer:DeleteServer",
    "transfer:DescribeServer",
+   "transfer:ListTagsForResource",
    "transfer:StartServer",
    "transfer:StopServer",
    "transfer:TagResource",
@@ -18638,6 +18789,7 @@
    "transfer:DeleteUser",
    "transfer:DescribeUser",
    "transfer:ImportSshPublicKey",
+   "transfer:ListTagsForResource",
    "transfer:TagResource",
    "transfer:UnTagResource",
    "transfer:UpdateUser"
@@ -18667,6 +18819,7 @@
    "transfer:DeleteWebAppCustomization",
    "transfer:DescribeWebApp",
    "transfer:DescribeWebAppCustomization",
+   "transfer:ListTagsForResource",
    "transfer:TagResource",
    "transfer:UnTagResource",
    "transfer:UpdateWebApp",
@@ -18676,6 +18829,7 @@
    "transfer:CreateWorkflow",
    "transfer:DeleteWorkflow",
    "transfer:DescribeWorkflow",
+   "transfer:ListTagsForResource",
    "transfer:TagResource",
    "transfer:UnTagResource"
   ],
@@ -19144,6 +19298,7 @@
    "wisdom:CreateContentAssociation",
    "wisdom:DeleteContentAssociation",
    "wisdom:GetContentAssociation",
+   "wisdom:ListTagsForResource",
    "wisdom:TagResource"
   ],
   "AWS::Wisdom::KnowledgeBase": [
@@ -19200,6 +19355,35 @@
    "workspaces:DeleteTags",
    "workspaces:DescribeConnectionAliases",
    "workspaces:DescribeTags"
+  ],
+  "AWS::WorkSpaces::Directory": [
+   "ec2:CreateSecurityGroup",
+   "ec2:CreateTags",
+   "ec2:DescribeAvailabilityZones",
+   "ec2:DescribeInternetGateways",
+   "ec2:DescribeNetworkInterfaces",
+   "ec2:DescribeRouteTables",
+   "ec2:DescribeSecurityGroups",
+   "ec2:DescribeSubnets",
+   "ec2:DescribeVpcEndpoints",
+   "ec2:DescribeVpcs",
+   "iam:GetRole",
+   "iam:PassRole",
+   "workspaces:AssociateIpGroups",
+   "workspaces:CreateTags",
+   "workspaces:DeleteTags",
+   "workspaces:DeregisterWorkspaceDirectory",
+   "workspaces:DescribeTags",
+   "workspaces:DescribeWorkspaceDirectories",
+   "workspaces:DisassociateIpGroups",
+   "workspaces:ModifyCertificateBasedAuthProperties",
+   "workspaces:ModifyEndpointEncryptionMode",
+   "workspaces:ModifySamlProperties",
+   "workspaces:ModifySelfservicePermissions",
+   "workspaces:ModifyStreamingProperties",
+   "workspaces:ModifyWorkspaceAccessProperties",
+   "workspaces:ModifyWorkspaceCreationProperties",
+   "workspaces:RegisterWorkspaceDirectory"
   ],
   "AWS::WorkSpaces::Workspace": [
    "kms:CreateGrant",
