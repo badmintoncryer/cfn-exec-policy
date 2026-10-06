@@ -14,6 +14,8 @@
   <a href="https://www.npmjs.com/package/cfn-exec-policy"><img src="https://img.shields.io/npm/dt/cfn-exec-policy.svg" alt="npm total downloads"></a>
 </p>
 
+<p align="center"><b>English</b> | <a href="https://github.com/badmintoncryer/cfn-exec-policy/blob/main/README.ja.md">日本語</a></p>
+
 **For AWS CDK & CloudFormation.** Generate the IAM policy your CloudFormation
 execution role actually needs, so `cdk bootstrap` stops handing it
 `AdministratorAccess`.
@@ -26,6 +28,19 @@ npx cfn-exec-policy apply        # creates/updates the managed policy "cfn-exec-
 
 Run the printed `cdk bootstrap` command once, and every deploy in that
 environment runs with the generated policy instead of administrator access.
+
+When your templates change, update the policy before you deploy:
+
+```sh
+cdk synth
+npx cfn-exec-policy apply        # adds what the new templates need
+cdk deploy
+```
+
+In CI, `npx cfn-exec-policy check` fails the job when the policy is missing
+something, so the deploy fails fast instead of mid-rollout. Re-run
+`cdk bootstrap` only when `apply` prints a different list of policy ARNs
+(the policy grew past one document).
 
 ## Commands
 
@@ -56,6 +71,8 @@ permissions, so updates, replacements, rollbacks and deletes all work.
   `--prune` when you know the policy serves only this app. If that needs fewer
   split parts, the extra `cfn-exec-policy-N` policies are emptied (they stay
   attached until you re-run `cdk bootstrap` with the new list).
+- Tag permissions from the schema's tagging section are added too, so changing
+  or removing tags (CDK `Tags.of()`, stack tags) goes through.
 - About 7% of resource types publish no handler permissions. Those measured on
   a real account (e.g. `AWS::CodeBuild::Project`, `AWS::Glue::Table`,
   `AWS::Route53::RecordSetGroup`) use a hand-written list; the rest (e.g.
