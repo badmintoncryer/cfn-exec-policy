@@ -148,10 +148,15 @@ var handWritten = map[string][]string{
 	"AWS::CodeBuild::ReportGroup": {"codebuild:BatchGetReportGroups", "codebuild:CreateReportGroup",
 		"codebuild:DeleteReportGroup", "codebuild:UpdateReportGroup"},
 	"AWS::IAM::UserToGroupAddition": {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
+	// The plan creates the scaling policies and alarms with the caller's credentials (the
+	// autoscaling/cloudwatch actions, from the verify pass's error). Measured with an EC2
+	// Auto Scaling group only; other namespaces would also need application-autoscaling.
 	// The first plan creates the AutoScalingPlans service-linked role; bench already had it
 	// after measuring, so iam:CreateServiceLinkedRole comes from the service docs.
 	"AWS::AutoScalingPlans::ScalingPlan": {"autoscaling-plans:CreateScalingPlan", "autoscaling-plans:DeleteScalingPlan",
-		"autoscaling-plans:DescribeScalingPlans", "autoscaling-plans:UpdateScalingPlan", "iam:CreateServiceLinkedRole"},
+		"autoscaling-plans:DescribeScalingPlans", "autoscaling-plans:UpdateScalingPlan", "autoscaling:DeletePolicy",
+		"autoscaling:DescribePolicies", "autoscaling:PutScalingPolicy", "autoscaling:UpdateAutoScalingGroup",
+		"cloudwatch:DeleteAlarms", "cloudwatch:DescribeAlarms", "cloudwatch:PutMetricAlarm", "iam:CreateServiceLinkedRole"},
 	"AWS::Budgets::Budget":       {"budgets:ModifyBudget", "budgets:ViewBudget"},
 	"AWS::CloudFormation::Macro": {"iam:PassRole"},
 	"AWS::DAX::SubnetGroup":      {"dax:CreateSubnetGroup", "dax:DeleteSubnetGroup", "dax:UpdateSubnetGroup"},
