@@ -10,3 +10,4 @@ bench/nohandler/windows2.log
 bench/nohandler/verify2.log
 bench/nohandler/windows3*.log
 bench/nohandler/verify3*.log
+bench/tags/*.log

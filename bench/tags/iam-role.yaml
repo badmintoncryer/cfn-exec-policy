@@ -1,0 +1,14 @@
+# Tag-change check: phase 1 tags a=1,b=2; phase 2 changes a and drops b; phase 3 drops all tags.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions:
+  One: !Equals [!Ref Phase, "1"]
+  Two: !Equals [!Ref Phase, "2"]
+  Three: !Equals [!Ref Phase, "3"]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: lambda.amazonaws.com }, Action: sts:AssumeRole }]
+      Tags: !If [Three, !Ref AWS::NoValue, !If [Two, [{ Key: a, Value: "2" }], [{ Key: a, Value: "1" }, { Key: b, Value: "2" }]]]
