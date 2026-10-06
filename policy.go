@@ -136,7 +136,8 @@ type PolicyDocument struct {
 // calls CloudFormation made (CloudTrail, invokedBy cloudformation.amazonaws.com)
 // while creating, updating and deleting the type on bench, plus iam:PassRole where
 // the type takes a role ARN (CloudTrail never shows it). An empty row means the
-// type needs nothing. CloudTrail event names are mapped to IAM actions where they
+// type needs nothing. Authorization-only checks never show up in CloudTrail either
+// (EC2 tag-on-create needs ec2:CreateTags); the verify pass catches those. CloudTrail event names are mapped to IAM actions where they
 // differ (Budgets). Dynamic references are left out: RequiredActions adds those from
 // the template. Measured 2026-10-06 (#5).
 var handWritten = map[string][]string{
@@ -167,7 +168,7 @@ var handWritten = map[string][]string{
 	"AWS::CloudFormation::WaitCondition": {},
 	"AWS::EC2::ClientVpnAuthorizationRule": {"ec2:AuthorizeClientVpnIngress", "ec2:DescribeClientVpnAuthorizationRules",
 		"ec2:RevokeClientVpnIngress"},
-	"AWS::EC2::ClientVpnEndpoint":  {"ec2:CreateClientVpnEndpoint", "ec2:DeleteClientVpnEndpoint", "ec2:DescribeClientVpnEndpoints"},
+	"AWS::EC2::ClientVpnEndpoint":  {"ec2:CreateClientVpnEndpoint", "ec2:CreateTags", "ec2:DeleteClientVpnEndpoint", "ec2:DeleteTags", "ec2:DescribeClientVpnEndpoints"},
 	"AWS::Glue::Table":             {"glue:CreateTable", "glue:DeleteTable", "glue:UpdateTable"},
 	"AWS::Route53::RecordSetGroup": {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
 }
