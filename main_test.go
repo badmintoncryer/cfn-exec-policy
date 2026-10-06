@@ -16,6 +16,11 @@ import (
 
 func generate(t *testing.T, paths ...string) ([]string, []string) {
 	t.Helper()
+	return generateWith(t, false, paths...)
+}
+
+func generateWith(t *testing.T, passCond bool, paths ...string) ([]string, []string) {
+	t.Helper()
 	tbl, err := LoadTable(false)
 	if err != nil {
 		t.Fatal(err)
@@ -24,7 +29,7 @@ func generate(t *testing.T, paths ...string) ([]string, []string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return RequiredActions(tbl, tpls)
+	return RequiredActions(tbl, tpls, passCond)
 }
 
 func TestCdkOut(t *testing.T) {
@@ -109,7 +114,7 @@ func TestDocumentsSplitUnderLimit(t *testing.T) {
 }
 
 func TestAllowedActionsRoundTrip(t *testing.T) {
-	b, _ := json.Marshal(newDoc(1, []string{"s3:*", "sqs:CreateQueue"}))
+	b, _ := json.Marshal(newDoc(1, []string{"s3:*", "sqs:CreateQueue"}, nil))
 	got, err := AllowedActions(b)
 	if err != nil || strings.Join(got, ",") != "s3:*,sqs:CreateQueue" {
 		t.Fatalf("got %v %v", got, err)
@@ -223,5 +228,50 @@ func TestBuildTableIncludesTaggingPermissions(t *testing.T) {
 	}
 	if tbl.Types["AWS::X::NoHandlers"] != nil {
 		t.Errorf("a type without handlers must stay out of the table (it falls back): %v", tbl.Types["AWS::X::NoHandlers"])
+	}
+}
+
+func TestPassRoleCondition(t *testing.T) {
+	actions, warnings := generateWith(t, true, "testdata/passrole.yaml")
+	if len(warnings) > 0 || contains(actions, "iam:PassRole") {
+		t.Fatalf("mapped types must not need a bare iam:PassRole: %v %v", warnings, actions)
+	}
+	docs := Documents(Compact(actions))
+	if len(docs) != 1 || len(docs[0].Statement) != 2 {
+		t.Fatalf("want one document with a conditioned statement: %+v", docs)
+	}
+	got := docs[0].Statement[1].Condition["StringEquals"]["iam:PassedToService"]
+	if strings.Join(got, ",") != "lambda.amazonaws.com,states.amazonaws.com" {
+		t.Fatalf("services: %v", got)
+	}
+	// check and apply read the condition back, so a policy written with the flag
+	// covers what it was written for, and nothing passed to another service.
+	b, _ := json.Marshal(docs[0])
+	have, _ := AllowedActions(b)
+	for _, a := range actions {
+		if !Covered(a, have) {
+			t.Errorf("round trip lost %s", a)
+		}
+	}
+	if Covered("iam:PassRole", have) || Covered(passRole+"ecs-tasks.amazonaws.com", have) {
+		t.Errorf("conditioned grant must not cover other services: %v", have)
+	}
+	if !Covered(passRole+"lambda.amazonaws.com", []string{"iam:PassRole"}) {
+		t.Errorf("a bare iam:PassRole must cover a conditioned need")
+	}
+	if a, _ := generateWith(t, false, "testdata/passrole.yaml"); !contains(a, "iam:PassRole") {
+		t.Errorf("without the flag iam:PassRole stays bare: %v", a)
+	}
+}
+
+func TestPassRoleConditionUnmappedTypeStaysBare(t *testing.T) {
+	actions, warnings := generateWith(t, true, "testdata/passrole.yaml", "testdata/passrole-unmapped.yaml")
+	if !contains(actions, "iam:PassRole") || len(warnings) != 1 {
+		t.Fatalf("an unmapped type must keep a bare iam:PassRole with a warning: %v %v", warnings, actions)
+	}
+	for _, d := range Documents(Compact(actions)) {
+		if len(d.Statement) != 1 {
+			t.Fatalf("the bare grant covers the conditioned one; no second statement: %+v", d)
+		}
 	}
 }

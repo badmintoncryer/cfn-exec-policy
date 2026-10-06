@@ -58,6 +58,7 @@ type common struct {
 	fs         *flag.FlagSet
 	refresh    *bool
 	policyName *string
+	passCond   *bool
 }
 
 func newFlags(name string) common {
@@ -66,6 +67,7 @@ func newFlags(name string) common {
 		fs:         fs,
 		refresh:    fs.Bool("refresh-schemas", false, "use the latest CloudFormation schemas instead of the embedded table"),
 		policyName: fs.String("policy-name", "cfn-exec-policy", "managed policy name (extra documents get -2, -3, …)"),
+		passCond:   fs.Bool("pass-role-condition", false, "limit iam:PassRole with iam:PassedToService to the services the templates pass roles to"),
 	}
 }
 
@@ -87,7 +89,7 @@ func required(c common, clients *awsClients) ([]string, error) {
 		}
 		tpls = append(tpls, deployed...)
 	}
-	actions, warnings := RequiredActions(tbl, tpls)
+	actions, warnings := RequiredActions(tbl, tpls, *c.passCond)
 	for _, w := range warnings {
 		fmt.Fprintln(os.Stderr, "warning:", w)
 	}

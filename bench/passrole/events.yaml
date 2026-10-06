@@ -1,0 +1,20 @@
+# AWS::Events::Rule passes RoleArn to events.amazonaws.com. Disabled, so it never runs.
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: events.amazonaws.com}, Action: sts:AssumeRole}]
+  Bus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Sub ${AWS::StackName}-target
+  Rule:
+    Type: AWS::Events::Rule
+    Properties:
+      State: DISABLED
+      ScheduleExpression: rate(1 day)
+      Targets:
+        - Id: bus
+          Arn: !GetAtt Bus.Arn
+          RoleArn: !GetAtt Role.Arn

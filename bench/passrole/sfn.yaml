@@ -1,0 +1,12 @@
+# AWS::StepFunctions::StateMachine passes RoleArn to states.amazonaws.com.
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: states.amazonaws.com}, Action: sts:AssumeRole}]
+  Machine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt Role.Arn
+      DefinitionString: '{"StartAt":"P","States":{"P":{"Type":"Pass","End":true}}}'

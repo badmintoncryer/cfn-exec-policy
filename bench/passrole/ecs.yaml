@@ -1,0 +1,31 @@
+# AWS::ECS::TaskDefinition passes TaskRoleArn/ExecutionRoleArn to ecs-tasks.amazonaws.com.
+# AWS::ECS::Service with DesiredCount 0 runs no task, so it costs nothing.
+Parameters:
+  SubnetId: {Type: AWS::EC2::Subnet::Id}
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: ecs-tasks.amazonaws.com}, Action: sts:AssumeRole}]
+  Cluster:
+    Type: AWS::ECS::Cluster
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: "256"
+      Memory: "512"
+      TaskRoleArn: !GetAtt Role.Arn
+      ExecutionRoleArn: !GetAtt Role.Arn
+      ContainerDefinitions: [{Name: app, Image: public.ecr.aws/docker/library/busybox:latest}]
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref Task
+      LaunchType: FARGATE
+      DesiredCount: 0
+      NetworkConfiguration:
+        AwsvpcConfiguration: {Subnets: [!Ref SubnetId], AssignPublicIp: ENABLED}

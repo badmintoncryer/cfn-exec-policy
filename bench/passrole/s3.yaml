@@ -1,0 +1,20 @@
+# AWS::S3::Bucket passes ReplicationConfiguration.Role to s3.amazonaws.com.
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: s3.amazonaws.com}, Action: sts:AssumeRole}]
+  Destination:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration: {Status: Enabled}
+  Source:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration: {Status: Enabled}
+      ReplicationConfiguration:
+        Role: !GetAtt Role.Arn
+        Rules:
+          - Status: Enabled
+            Destination: {Bucket: !GetAtt Destination.Arn}

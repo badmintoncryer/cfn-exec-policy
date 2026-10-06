@@ -1,0 +1,3 @@
+Resources:
+  Project:
+    Type: AWS::CodeBuild::Project

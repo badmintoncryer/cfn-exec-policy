@@ -1,0 +1,14 @@
+# AWS::Lambda::Function passes Role to lambda.amazonaws.com.
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: sts:AssumeRole}]
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt Role.Arn
+      Code: {ZipFile: "exports.handler = async () => {};"}

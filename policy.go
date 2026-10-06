@@ -12,8 +12,9 @@ import (
 const MaxPolicySize = 6144
 
 // RequiredActions returns the actions the execution role needs to create, update
-// and delete every resource in the templates, plus warnings for guesses.
-func RequiredActions(tbl *Table, tpls []*Template) (actions []string, warnings []string) {
+// and delete every resource in the templates, plus warnings for guesses. With
+// passCond, iam:PassRole of a type in passedToService becomes a passRole token.
+func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions []string, warnings []string) {
 	set := map[string]bool{}
 	add := func(as ...string) {
 		for _, a := range as {
@@ -30,21 +31,35 @@ func RequiredActions(tbl *Table, tpls []*Template) (actions []string, warnings [
 	}
 	for _, t := range tpls {
 		for _, r := range t.Resources {
+			var as []string
 			switch {
 			case r.Type == "AWS::CDK::Metadata":
 			case strings.HasPrefix(r.Type, "Custom::") || r.Type == "AWS::CloudFormation::CustomResource":
 				// CloudFormation invokes the ServiceToken with the execution role (verified on bench, #3).
-				add("lambda:InvokeFunction", "sns:Publish")
+				as = []string{"lambda:InvokeFunction", "sns:Publish"}
 			case tbl.Types[r.Type] != nil:
-				add(tbl.Types[r.Type]...)
+				as = tbl.Types[r.Type]
 			case measured(r.Type):
-				add(handWritten[r.Type]...)
+				as = handWritten[r.Type]
 			case tbl.Prefixes[namespace(r.Type)] != "":
 				p := tbl.Prefixes[namespace(r.Type)]
-				add(p+":*", "iam:PassRole")
+				as = []string{p + ":*", "iam:PassRole"}
 				warn("%s has no handler permissions in the schema; granting %s:* and iam:PassRole", r.Type, p)
 			default:
 				warn("%s is unknown; no permissions granted for it", r.Type)
+			}
+			for _, a := range as {
+				switch {
+				case a != "iam:PassRole" || !passCond:
+					add(a)
+				case passedToService[r.Type] != nil:
+					for _, svc := range passedToService[r.Type] {
+						add(passRole + svc)
+					}
+				default:
+					add(a)
+					warn("%s is not in the --pass-role-condition map; iam:PassRole stays unconditioned", r.Type)
+				}
 			}
 			if r.Type == "AWS::CloudFormation::Stack" {
 				// The nested template URL, and the change sets CloudFormation drives nested
@@ -116,10 +131,16 @@ func contains(xs []string, x string) bool {
 }
 
 // Covered reports whether action is matched by any of the granted patterns.
+// A passRole token is also covered by whatever covers iam:PassRole itself.
 func Covered(action string, granted []string) bool {
 	a := strings.ToLower(action)
+	plain, _, _ := strings.Cut(a, ">")
 	for _, g := range granted {
-		if ok, _ := path.Match(strings.ToLower(g), a); ok {
+		g = strings.ToLower(g)
+		if ok, _ := path.Match(g, a); ok {
+			return true
+		}
+		if ok, _ := path.Match(g, plain); ok && !strings.Contains(g, ">") {
 			return true
 		}
 	}
@@ -179,6 +200,26 @@ var handWritten = map[string][]string{
 	"AWS::Route53::RecordSetGroup": {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
 }
 
+// passRole prefixes a token meaning "iam:PassRole, only to this service":
+// "iam:PassRole>lambda.amazonaws.com". Documents turns tokens into one statement
+// with an iam:PassedToService condition, and AllowedActions reads them back.
+const passRole = "iam:PassRole>"
+
+// passedToService maps types whose handlers pass a role to the service principal
+// it is passed to, for --pass-role-condition (#7). An empty row means the type
+// takes no role, so it needs no iam:PassRole. Types missing here keep a bare
+// iam:PassRole, so the flag never breaks a deploy. bench/passrole/ checks each row.
+var passedToService = map[string][]string{
+	"AWS::ApiGateway::Method":          {"apigateway.amazonaws.com"},
+	"AWS::ApiGateway::RestApi":         {},
+	"AWS::ECS::Service":                {"ecs.amazonaws.com"},
+	"AWS::ECS::TaskDefinition":         {"ecs-tasks.amazonaws.com"},
+	"AWS::Events::Rule":                {"events.amazonaws.com"},
+	"AWS::Lambda::Function":            {"lambda.amazonaws.com"},
+	"AWS::S3::Bucket":                  {"s3.amazonaws.com"},
+	"AWS::StepFunctions::StateMachine": {"states.amazonaws.com"},
+}
+
 func measured(typ string) bool {
 	_, ok := handWritten[typ]
 	return ok
@@ -192,18 +233,30 @@ func EmptyDocument() PolicyDocument {
 	}}
 }
 
-// Statement is an Allow statement on all resources.
+// Statement is a statement on all resources.
 type Statement struct {
-	Sid      string   `json:"Sid"`
-	Effect   string   `json:"Effect"`
-	Action   []string `json:"Action"`
-	Resource string   `json:"Resource"`
+	Sid       string                         `json:"Sid"`
+	Effect    string                         `json:"Effect"`
+	Action    []string                       `json:"Action"`
+	Resource  string                         `json:"Resource"`
+	Condition map[string]map[string][]string `json:"Condition,omitempty"`
 }
 
-func newDoc(i int, actions []string) PolicyDocument {
-	return PolicyDocument{Version: "2012-10-17", Statement: []Statement{{
-		Sid: fmt.Sprintf("CfnExecPolicy%d", i), Effect: "Allow", Action: actions, Resource: "*",
-	}}}
+// newDoc builds part i; the first part also carries the conditioned PassRole.
+func newDoc(i int, actions, services []string) PolicyDocument {
+	d := PolicyDocument{Version: "2012-10-17"}
+	if len(actions) > 0 {
+		d.Statement = append(d.Statement, Statement{
+			Sid: fmt.Sprintf("CfnExecPolicy%d", i), Effect: "Allow", Action: actions, Resource: "*",
+		})
+	}
+	if i == 1 && len(services) > 0 {
+		d.Statement = append(d.Statement, Statement{
+			Sid: "CfnExecPolicyPassRole", Effect: "Allow", Action: []string{"iam:PassRole"}, Resource: "*",
+			Condition: map[string]map[string][]string{"StringEquals": {"iam:PassedToService": services}},
+		})
+	}
+	return d
 }
 
 func size(d PolicyDocument) int {
@@ -214,17 +267,25 @@ func size(d PolicyDocument) int {
 // Documents splits actions into as few policy documents as fit the size limit.
 func Documents(actions []string) []PolicyDocument {
 	sort.Strings(actions)
+	var plain, services []string
+	for _, a := range actions {
+		if svc, ok := strings.CutPrefix(a, passRole); ok {
+			services = append(services, svc)
+		} else {
+			plain = append(plain, a)
+		}
+	}
 	var docs []PolicyDocument
 	var cur []string
-	for _, a := range actions {
-		if len(cur) > 0 && size(newDoc(len(docs)+1, append(append([]string{}, cur...), a))) > MaxPolicySize {
-			docs = append(docs, newDoc(len(docs)+1, cur))
+	for _, a := range plain {
+		if len(cur) > 0 && size(newDoc(len(docs)+1, append(append([]string{}, cur...), a), services)) > MaxPolicySize {
+			docs = append(docs, newDoc(len(docs)+1, cur, services))
 			cur = nil
 		}
 		cur = append(cur, a)
 	}
-	if len(cur) > 0 {
-		docs = append(docs, newDoc(len(docs)+1, cur))
+	if len(cur) > 0 || len(docs) == 0 && len(services) > 0 {
+		docs = append(docs, newDoc(len(docs)+1, cur, services))
 	}
 	return docs
 }
@@ -250,16 +311,45 @@ func AllowedActions(doc []byte) ([]string, error) {
 		if s["Effect"] != "Allow" {
 			continue
 		}
+		var as []string
 		switch a := s["Action"].(type) {
 		case string:
-			out = append(out, a)
+			as = []string{a}
 		case []any:
 			for _, x := range a {
 				if str, ok := x.(string); ok {
-					out = append(out, str)
+					as = append(as, str)
 				}
 			}
 		}
+		if services := passedTo(s); services != nil && len(as) == 1 && as[0] == "iam:PassRole" {
+			for _, svc := range services {
+				out = append(out, passRole+svc)
+			}
+			continue
+		}
+		out = append(out, as...)
 	}
 	return out, nil
+}
+
+// passedTo returns the services of the condition Documents writes, or nil.
+func passedTo(s map[string]any) []string {
+	cond, _ := s["Condition"].(map[string]any)
+	eq, _ := cond["StringEquals"].(map[string]any)
+	if len(cond) != 1 || len(eq) != 1 {
+		return nil
+	}
+	var out []string
+	switch v := eq["iam:PassedToService"].(type) {
+	case string:
+		out = []string{v}
+	case []any:
+		for _, x := range v {
+			if str, ok := x.(string); ok {
+				out = append(out, str)
+			}
+		}
+	}
+	return out
 }
