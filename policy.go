@@ -149,13 +149,13 @@ var handWritten = map[string][]string{
 		"codebuild:DeleteReportGroup", "codebuild:UpdateReportGroup"},
 	"AWS::IAM::UserToGroupAddition": {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
 	// The plan creates the scaling policies and alarms with the caller's credentials (the
-	// autoscaling/cloudwatch actions, from the verify pass's error). Measured with an EC2
+	// autoscaling/cloudwatch actions, from the verify pass's errors and CloudTrail AccessDenied). Measured with an EC2
 	// Auto Scaling group only; other namespaces would also need application-autoscaling.
 	// The first plan creates the AutoScalingPlans service-linked role; bench already had it
 	// after measuring, so iam:CreateServiceLinkedRole comes from the service docs.
 	"AWS::AutoScalingPlans::ScalingPlan": {"autoscaling-plans:CreateScalingPlan", "autoscaling-plans:DeleteScalingPlan",
 		"autoscaling-plans:DescribeScalingPlans", "autoscaling-plans:UpdateScalingPlan", "autoscaling:DeletePolicy",
-		"autoscaling:DescribePolicies", "autoscaling:PutScalingPolicy", "autoscaling:UpdateAutoScalingGroup",
+		"autoscaling:DescribeAutoScalingGroups", "autoscaling:DescribePolicies", "autoscaling:PutScalingPolicy", "autoscaling:UpdateAutoScalingGroup",
 		"cloudwatch:DeleteAlarms", "cloudwatch:DescribeAlarms", "cloudwatch:PutMetricAlarm", "iam:CreateServiceLinkedRole"},
 	"AWS::Budgets::Budget":       {"budgets:ModifyBudget", "budgets:ViewBudget"},
 	"AWS::CloudFormation::Macro": {"iam:PassRole"},
