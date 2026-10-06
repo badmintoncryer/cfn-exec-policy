@@ -23,9 +23,9 @@ func TestCdkOut(t *testing.T) {
 	actions, warnings := generate(t, "testdata/cdk.out")
 	for _, want := range []string{
 		"s3:CreateBucket", "s3:DeleteBucket", // handler permissions
-		"sqs:CreateQueue",             // nested stack
-		"dynamodb:CreateTable",        // stage (nested assembly)
-		"codebuild:*", "iam:PassRole", // type without handlers
+		"sqs:CreateQueue",              // nested stack
+		"dynamodb:CreateTable",         // stage (nested assembly)
+		"greengrass:*", "iam:PassRole", // type without handlers
 		"lambda:InvokeFunction",          // custom resource
 		"ssm:GetParameters",              // BootstrapVersion parameter
 		"secretsmanager:GetSecretValue",  // dynamic reference
@@ -37,7 +37,7 @@ func TestCdkOut(t *testing.T) {
 		}
 	}
 	joined := strings.Join(warnings, "\n")
-	if !strings.Contains(joined, "AWS::CodeBuild::Project") || !strings.Contains(joined, "Third::Party::Thing") {
+	if !strings.Contains(joined, "AWS::Greengrass::Group") || !strings.Contains(joined, "Third::Party::Thing") {
 		t.Errorf("warnings = %q", warnings)
 	}
 	if strings.Contains(joined, "AWS::CDK::Metadata") {
@@ -117,5 +117,33 @@ func TestEmptyDocumentGrantsNothing(t *testing.T) {
 	got, err := AllowedActions(b)
 	if err != nil || len(got) != 0 {
 		t.Fatalf("EmptyDocument allows %v (err %v)", got, err)
+	}
+}
+
+func TestHandWritten(t *testing.T) {
+	actions, warnings := generate(t, "testdata/handwritten.yaml")
+	for _, want := range []string{"codebuild:CreateProject", "iam:PassRole", "route53:ChangeResourceRecordSets"} {
+		if !Covered(want, actions) {
+			t.Errorf("missing %s", want)
+		}
+	}
+	if Covered("codebuild:StartBuild", actions) {
+		t.Errorf("fell back to codebuild:*: %v", actions)
+	}
+	if len(warnings) > 0 {
+		t.Errorf("measured types should not warn: %q", warnings)
+	}
+}
+
+// A row must go once the schema publishes handlers for the type, or it shadows nothing.
+func TestHandWrittenOnlyForTypesWithoutHandlers(t *testing.T) {
+	tbl, err := LoadTable(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for typ := range handWritten {
+		if tbl.Types[typ] != nil {
+			t.Errorf("%s now has handler permissions in the schema; drop its hand-written row", typ)
+		}
 	}
 }

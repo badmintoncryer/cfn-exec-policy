@@ -1,0 +1,8 @@
+Resources:
+  Build:
+    Type: AWS::CodeBuild::Project
+    Properties: { ServiceRole: arn:aws:iam::123456789012:role/x }
+  Records:
+    Type: AWS::Route53::RecordSetGroup
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle

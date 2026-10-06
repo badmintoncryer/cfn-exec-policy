@@ -37,6 +37,8 @@ func RequiredActions(tbl *Table, tpls []*Template) (actions []string, warnings [
 				add("lambda:InvokeFunction", "sns:Publish")
 			case tbl.Types[r.Type] != nil:
 				add(tbl.Types[r.Type]...)
+			case measured(r.Type):
+				add(handWritten[r.Type]...)
 			case tbl.Prefixes[namespace(r.Type)] != "":
 				p := tbl.Prefixes[namespace(r.Type)]
 				add(p+":*", "iam:PassRole")
@@ -128,6 +130,28 @@ func Covered(action string, granted []string) bool {
 type PolicyDocument struct {
 	Version   string      `json:"Version"`
 	Statement []Statement `json:"Statement"`
+}
+
+// handWritten covers types whose schema lists no handler permissions. Rows are the
+// calls CloudFormation made (CloudTrail, invokedBy cloudformation.amazonaws.com)
+// while creating, updating and deleting the type on bench, plus iam:PassRole where
+// the type takes a role ARN (CloudTrail never shows it). An empty row means the
+// type needs nothing. Measured 2026-10-06 (#5).
+var handWritten = map[string][]string{
+	"AWS::AppSync::GraphQLSchema":              {"appsync:GetSchemaCreationStatus", "appsync:StartSchemaCreation"},
+	"AWS::CloudFormation::WaitConditionHandle": {},
+	"AWS::CloudWatch::AnomalyDetector":         {"cloudwatch:DeleteAnomalyDetector", "cloudwatch:PutAnomalyDetector"},
+	"AWS::CodeBuild::Project":                  {"codebuild:CreateProject", "codebuild:DeleteProject", "codebuild:UpdateProject", "iam:PassRole"},
+	"AWS::CodeBuild::ReportGroup": {"codebuild:BatchGetReportGroups", "codebuild:CreateReportGroup",
+		"codebuild:DeleteReportGroup", "codebuild:UpdateReportGroup"},
+	"AWS::IAM::UserToGroupAddition": {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
+	"AWS::Glue::Table":              {"glue:CreateTable", "glue:DeleteTable", "glue:UpdateTable"},
+	"AWS::Route53::RecordSetGroup":  {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
+}
+
+func measured(typ string) bool {
+	_, ok := handWritten[typ]
+	return ok
 }
 
 // EmptyDocument grants nothing. It replaces a split part that is no longer needed,

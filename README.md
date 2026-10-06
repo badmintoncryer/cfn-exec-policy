@@ -41,9 +41,11 @@ permissions, so updates, replacements, rollbacks and deletes all work.
   `--prune` when you know the policy serves only this app. If that needs fewer
   split parts, the extra `cfn-exec-policy-N` policies are emptied (they stay
   attached until you re-run `cdk bootstrap` with the new list).
-- About 7% of resource types publish no handler permissions (e.g.
-  `AWS::CodeBuild::Project`, `AWS::EMR::Cluster`). For those it grants
-  `<service>:*` plus `iam:PassRole` and prints a warning.
+- About 7% of resource types publish no handler permissions. Those measured on
+  a real account (e.g. `AWS::CodeBuild::Project`, `AWS::Glue::Table`,
+  `AWS::Route53::RecordSetGroup`) use a hand-written list; the rest (e.g.
+  `AWS::EMR::Cluster`) get `<service>:*` plus `iam:PassRole` and a warning.
+  Progress: [#5](https://github.com/badmintoncryer/cfn-exec-policy/issues/5).
 - Custom resources get `lambda:InvokeFunction` / `sns:Publish`; dynamic
   references and SSM parameter types get the matching `ssm`, `secretsmanager`
   and `kms` reads.
