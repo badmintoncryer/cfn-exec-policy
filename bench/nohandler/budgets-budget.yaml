@@ -1,0 +1,9 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Budget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit: { Amount: !Ref Phase, Unit: USD }

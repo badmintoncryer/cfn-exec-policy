@@ -1,0 +1,9 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Extra:
+    Type: AWS::ElasticLoadBalancingV2::ListenerCertificate
+    Properties:
+      ListenerArn: !ImportValue cfnxp-ListenerArn
+      Certificates:
+        - { CertificateArn: !If [Two, "{{resolve:ssm:/cdkpf/fixtures/acm/wildcard-appnao-com}}", "{{resolve:ssm:/cdkpf/fixtures/acm/cdkpf-appnao-com}}"] }

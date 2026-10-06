@@ -1,0 +1,8 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Isg:
+    Type: AWS::MediaLive::InputSecurityGroup
+    Properties:
+      WhitelistRules: [{ Cidr: !If [Two, 198.51.100.0/24, 192.0.2.0/24] }]
+      Tags: { phase: !Ref Phase }

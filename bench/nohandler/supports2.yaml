@@ -1,0 +1,51 @@
+# Resources the second batch of no-handler type stacks reference (issue #5). Deploy first.
+Resources:
+  LbSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties: { GroupDescription: cfnxp bench ALB, VpcId: vpc-4331593e }
+  Lb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: { Subnets: [subnet-2e0a500f, subnet-ab11fde7], SecurityGroups: [!Ref LbSg] }
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Lb
+      Port: 443
+      Protocol: HTTPS
+      Certificates: [{ CertificateArn: "{{resolve:ssm:/cdkpf/fixtures/acm/wildcard-appnao-com}}" }]
+      DefaultActions: [{ Type: fixed-response, FixedResponseConfig: { StatusCode: "404" } }]
+  MacroRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: lambda.amazonaws.com }, Action: sts:AssumeRole }]
+  MacroFn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.13
+      Handler: index.handler
+      Role: !GetAtt MacroRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"requestId": event["requestId"], "status": "success", "fragment": event["fragment"]}
+  LakeBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+  LakeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: lakeformation.amazonaws.com }, Action: sts:AssumeRole }]
+  DocDbSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: cfnxp-bench-docdb
+      GenerateSecretString: { SecretStringTemplate: '{"username":"cfnxp"}', GenerateStringKey: password, ExcludePunctuation: true }
+Outputs:
+  ListenerArn: { Value: !Ref Listener, Export: { Name: cfnxp-ListenerArn } }
+  MacroFnArn: { Value: !GetAtt MacroFn.Arn, Export: { Name: cfnxp-MacroFnArn } }
+  LakeBucketArn: { Value: !GetAtt LakeBucket.Arn, Export: { Name: cfnxp-LakeBucketArn } }
+  LakeRoleArn: { Value: !GetAtt LakeRole.Arn, Export: { Name: cfnxp-LakeRoleArn } }

@@ -1,0 +1,12 @@
+# No instances: the cluster alone bills only storage, which is empty.
+Parameters:
+  Phase: { Type: String, Default: "1" }
+Resources:
+  Cluster:
+    Type: AWS::DocDB::DBCluster
+    DeletionPolicy: Delete
+    Properties:
+      MasterUsername: cfnxp
+      MasterUserPassword: "{{resolve:secretsmanager:cfnxp-bench-docdb:SecretString:password}}"
+      BackupRetentionPeriod: !Ref Phase
+      Tags: [{ Key: phase, Value: !Ref Phase }]

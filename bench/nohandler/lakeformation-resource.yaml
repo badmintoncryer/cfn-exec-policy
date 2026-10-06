@@ -1,0 +1,10 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Location:
+    Type: AWS::LakeFormation::Resource
+    Properties:
+      ResourceArn: !ImportValue cfnxp-LakeBucketArn
+      UseServiceLinkedRole: false
+      RoleArn: !ImportValue cfnxp-LakeRoleArn
+      HybridAccessEnabled: !If [Two, true, false]

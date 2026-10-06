@@ -1,0 +1,8 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Macro:
+    Type: AWS::CloudFormation::Macro
+    Properties:
+      Name: cfnxp-bench-macro
+      Description: !Sub phase ${Phase}
+      FunctionName: !ImportValue cfnxp-MacroFnArn
