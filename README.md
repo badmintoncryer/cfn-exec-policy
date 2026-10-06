@@ -54,7 +54,8 @@ Inputs are `cdk.out` directories (default: `./cdk.out`, including nested
 stacks and Stages) or CloudFormation templates (JSON or YAML).
 
 Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
-latest CloudFormation schemas instead of the embedded table), `apply --prune`.
+latest CloudFormation schemas instead of the embedded table),
+`--pass-role-condition` (see below), `apply --prune`.
 
 ## How it works
 
@@ -82,8 +83,12 @@ permissions, so updates, replacements, rollbacks and deletes all work.
   references and SSM parameter types get the matching `ssm`, `secretsmanager`
   and `kms` reads.
 - `iam:PassRole` is granted on `*` without an `iam:PassedToService` condition
-  (whenever a schema lists it, and for the `<service>:*` fallback). An opt-in
-  `--pass-role-condition` flag is planned.
+  (whenever a schema lists it, and for the `<service>:*` fallback).
+  `--pass-role-condition` limits it to the services your templates pass roles
+  to, for the types checked on a real account (Lambda, Step Functions,
+  EventBridge rules, ECS, S3 replication, API Gateway). If another type in the
+  templates passes a role, `iam:PassRole` stays unconditioned and a warning
+  names the type.
 - `Describe*` / `List*` actions of a service are merged into wildcards to stay
   under the size limit.
 - Policies over IAM's 6,144-character limit are split into

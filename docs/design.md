@@ -50,5 +50,8 @@ require a scoped policy and is idle.
 `generate`, `check`, `apply`; default mode; `cdk.out` + nested stacks; embedded
 table + `--refresh-schemas`; `<service>:*` fallback; npm + GitHub Releases.
 
-Later: `--pass-role-condition`, `--strict` (PassRole scoping, boundary, boundary-less role detection),
+`--pass-role-condition` (#7; rows checked in `bench/passrole/`, each with a
+wrong-service control that must fail).
+
+Later: `--strict` (PassRole scoping, boundary, boundary-less role detection),
 growing the hand-written map, property-aware trimming of upper-bound lists.
