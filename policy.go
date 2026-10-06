@@ -136,7 +136,9 @@ type PolicyDocument struct {
 // calls CloudFormation made (CloudTrail, invokedBy cloudformation.amazonaws.com)
 // while creating, updating and deleting the type on bench, plus iam:PassRole where
 // the type takes a role ARN (CloudTrail never shows it). An empty row means the
-// type needs nothing. Measured 2026-10-06 (#5).
+// type needs nothing. CloudTrail event names are mapped to IAM actions where they
+// differ (Budgets). Dynamic references are left out: RequiredActions adds those from
+// the template. Measured 2026-10-06 (#5).
 var handWritten = map[string][]string{
 	"AWS::AppSync::GraphQLSchema":              {"appsync:GetSchemaCreationStatus", "appsync:StartSchemaCreation"},
 	"AWS::CloudFormation::WaitConditionHandle": {},
@@ -145,8 +147,19 @@ var handWritten = map[string][]string{
 	"AWS::CodeBuild::ReportGroup": {"codebuild:BatchGetReportGroups", "codebuild:CreateReportGroup",
 		"codebuild:DeleteReportGroup", "codebuild:UpdateReportGroup"},
 	"AWS::IAM::UserToGroupAddition": {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
-	"AWS::Glue::Table":              {"glue:CreateTable", "glue:DeleteTable", "glue:UpdateTable"},
-	"AWS::Route53::RecordSetGroup":  {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
+	"AWS::Budgets::Budget":          {"budgets:ModifyBudget", "budgets:ViewBudget"},
+	"AWS::CloudFormation::Macro":    {"iam:PassRole"},
+	"AWS::DAX::SubnetGroup":         {"dax:CreateSubnetGroup", "dax:DeleteSubnetGroup", "dax:UpdateSubnetGroup"},
+	"AWS::DocDB::DBCluster": {"rds:AddTagsToResource", "rds:CreateDBCluster", "rds:DeleteDBCluster",
+		"rds:DescribeDBClusters", "rds:ModifyDBCluster", "rds:RemoveTagsFromResource"},
+	"AWS::ElasticLoadBalancingV2::ListenerCertificate": {"elasticloadbalancing:AddListenerCertificates", "elasticloadbalancing:RemoveListenerCertificates"},
+	"AWS::LakeFormation::Resource": {"iam:GetRole", "iam:PassRole", "lakeformation:DeregisterResource", "lakeformation:RegisterResource",
+		"lakeformation:UpdateResource"},
+	"AWS::MediaLive::Input": {"iam:PassRole", "medialive:CreateInput", "medialive:CreateTags", "medialive:DeleteInput",
+		"medialive:DeleteTags", "medialive:DescribeInput", "medialive:UpdateInput"},
+	"AWS::MediaLive::InputSecurityGroup": {"medialive:CreateInputSecurityGroup", "medialive:DeleteInputSecurityGroup"},
+	"AWS::Glue::Table":                   {"glue:CreateTable", "glue:DeleteTable", "glue:UpdateTable"},
+	"AWS::Route53::RecordSetGroup":       {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
 }
 
 func measured(typ string) bool {

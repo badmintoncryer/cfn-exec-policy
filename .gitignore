@@ -6,3 +6,5 @@ bench/.bin/
 bench/nohandler/windows.log
 bench/nohandler/verify.log
 bench/nohandler/windows-iam.log
+bench/nohandler/windows2.log
+bench/nohandler/verify2.log
