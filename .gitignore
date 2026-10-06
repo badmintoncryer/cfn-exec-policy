@@ -8,3 +8,5 @@ bench/nohandler/verify.log
 bench/nohandler/windows-iam.log
 bench/nohandler/windows2.log
 bench/nohandler/verify2.log
+bench/nohandler/windows3*.log
+bench/nohandler/verify3*.log
