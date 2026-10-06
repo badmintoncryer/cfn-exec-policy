@@ -1,4 +1,18 @@
-# cfn-exec-policy
+<p align="center">
+  <img src="https://raw.githubusercontent.com/badmintoncryer/cfn-exec-policy/main/assets/logo.png" alt="cfn-exec-policy" width="104" height="104">
+</p>
+
+<h1 align="center">cfn-exec-policy</h1>
+
+<p align="center">
+  <strong>Least-privilege CloudFormation execution role for AWS CDK.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/badmintoncryer/cfn-exec-policy/actions/workflows/ci.yml"><img src="https://github.com/badmintoncryer/cfn-exec-policy/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/cfn-exec-policy"><img src="https://img.shields.io/npm/v/cfn-exec-policy.svg" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/cfn-exec-policy"><img src="https://img.shields.io/npm/dt/cfn-exec-policy.svg" alt="npm total downloads"></a>
+</p>
 
 **For AWS CDK & CloudFormation.** Generate the IAM policy your CloudFormation
 execution role actually needs, so `cdk bootstrap` stops handing it
