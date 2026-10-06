@@ -5,9 +5,9 @@ Reads windows.log ("<type-file> create|update|delete|end <UTC time>" lines writt
 the deploy loop), fetches the CloudTrail events CloudFormation made on behalf of the
 caller in each window, and prints the IAM actions per type and phase.
 
-Usage: bench/nohandler/harvest.py [windows.log] [--user Administrator]
+Usage: bench/nohandler/harvest.py [windows.log] [--user Administrator]  (region from AWS_REGION, default us-east-1)
 """
-import collections, datetime, json, subprocess, sys
+import collections, datetime, json, os, subprocess, sys
 
 # CloudTrail eventSource host -> IAM service prefix, where they differ.
 PREFIX = {"monitoring": "cloudwatch", "email": "ses", "elasticloadbalancing": "elasticloadbalancing"}
@@ -19,7 +19,7 @@ def parse(t):
 
 def events(start, end, user):
     out = subprocess.run(
-        ["aws", "cloudtrail", "lookup-events", "--no-cli-pager", "--region", "us-east-1",
+        ["aws", "cloudtrail", "lookup-events", "--no-cli-pager", "--region", os.environ.get("AWS_REGION", "us-east-1"),
          "--start-time", start.isoformat(), "--end-time", end.isoformat(),
          "--lookup-attributes", f"AttributeKey=Username,AttributeValue={user}", "--output", "json"],
         check=True, capture_output=True, text=True).stdout

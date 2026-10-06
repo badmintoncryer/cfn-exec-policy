@@ -1,0 +1,13 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Destination:
+    Type: AWS::PinpointEmail::ConfigurationSetEventDestination
+    Properties:
+      ConfigurationSetName: !ImportValue cfnxp-EmailConfigSet
+      EventDestinationName: cfnxp-bench-destination
+      EventDestination:
+        Enabled: !If [Two, false, true]
+        MatchingEventTypes: [SEND]
+        CloudWatchDestination:
+          DimensionConfigurations: [{ DimensionName: d, DimensionValueSource: messageTag, DefaultDimensionValue: x }]

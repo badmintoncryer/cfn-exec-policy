@@ -1,0 +1,10 @@
+# ap-northeast-1, against the endpoint in supports3-tokyo.yaml.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Rule:
+    Type: AWS::EC2::ClientVpnAuthorizationRule
+    Properties:
+      ClientVpnEndpointId: !ImportValue cfnxp-VpnId
+      TargetNetworkCidr: 172.31.0.0/16
+      AuthorizeAllGroups: true
+      Description: !Sub phase ${Phase}

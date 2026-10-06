@@ -1,0 +1,12 @@
+# Grants another account permission on a spare ENI. Pass an account you own as OtherAccount.
+Parameters:
+  Phase: { Type: String, Default: "1" }
+  OtherAccount: { Type: String }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Permission:
+    Type: AWS::EC2::NetworkInterfacePermission
+    Properties:
+      NetworkInterfaceId: !ImportValue cfnxp-EniId
+      AwsAccountId: !Ref OtherAccount
+      Permission: !If [Two, EIP-ASSOCIATE, INSTANCE-ATTACH]

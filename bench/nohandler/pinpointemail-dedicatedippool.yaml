@@ -1,0 +1,8 @@
+# An empty pool: no dedicated IPs are leased, so no charge.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Pool:
+    Type: AWS::PinpointEmail::DedicatedIpPool
+    Properties:
+      PoolName: cfnxp-bench-pool
+      Tags: [{ Key: phase, Value: !Ref Phase }]

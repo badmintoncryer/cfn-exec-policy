@@ -1,0 +1,9 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  ConfigSet:
+    Type: AWS::PinpointEmail::ConfigurationSet
+    Properties:
+      Name: cfnxp-bench-configset
+      SendingOptions: { SendingEnabled: !If [Two, false, true] }
+      Tags: [{ Key: phase, Value: !Ref Phase }]

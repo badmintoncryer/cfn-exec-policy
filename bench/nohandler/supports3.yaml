@@ -1,0 +1,52 @@
+# Resources the third batch of no-handler type stacks reference (issue #5), us-east-1.
+Resources:
+  Eni:
+    Type: AWS::EC2::NetworkInterface
+    Properties: { SubnetId: subnet-2e0a500f, Description: cfnxp bench }
+  Lt:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData: { InstanceType: t3.micro, ImageId: "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}" }
+  Asg:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MinSize: "0"
+      MaxSize: "0"
+      DesiredCapacity: "0"
+      VPCZoneIdentifier: [subnet-2e0a500f]
+      LaunchTemplate: { LaunchTemplateId: !Ref Lt, Version: !GetAtt Lt.LatestVersionNumber }
+      Tags: [{ Key: cfnxp-plan, Value: bench, PropagateAtLaunch: false }]
+  FlinkRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{ Effect: Allow, Principal: { Service: kinesisanalytics.amazonaws.com }, Action: sts:AssumeRole }]
+  Flink:
+    Type: AWS::KinesisAnalyticsV2::Application
+    Properties:
+      RuntimeEnvironment: FLINK-1_20
+      ServiceExecutionRole: !GetAtt FlinkRole.Arn
+      ApplicationConfiguration:
+        ApplicationCodeConfiguration:
+          CodeContentType: ZIPFILE
+          CodeContent: { ZipFileContent: "UEsDBAoAAAAAAPtqRl0ggSzcDAAAAAwAAAAKABwAUkVBRE1FLnR4dFVUCQAD2nfEatp3xGp1eAsAAQT1AQAABAAAAABwbGFjZWhvbGRlcgpQSwECHgMKAAAAAAD7akZdIIEs3AwAAAAMAAAACgAYAAAAAAABAAAApIEAAAAAUkVBRE1FLnR4dFVUBQAD2nfEanV4CwABBPUBAAAEAAAAAFBLBQYAAAAAAQABAFAAAABQAAAAAAA=" }
+  FlinkLogs:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties: { RetentionInDays: 1 }
+  Stream1:
+    Type: AWS::Logs::LogStream
+    Properties: { LogGroupName: !Ref FlinkLogs }
+  Stream2:
+    Type: AWS::Logs::LogStream
+    Properties: { LogGroupName: !Ref FlinkLogs }
+  EmailConfigSet:
+    Type: AWS::SES::ConfigurationSet
+Outputs:
+  EniId: { Value: !Ref Eni, Export: { Name: cfnxp-EniId } }
+  AsgName: { Value: !Ref Asg, Export: { Name: cfnxp-AsgName } }
+  FlinkApp: { Value: !Ref Flink, Export: { Name: cfnxp-FlinkApp } }
+  Stream1Arn: { Value: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${FlinkLogs}:log-stream:${Stream1}", Export: { Name: cfnxp-Stream1Arn } }
+  Stream2Arn: { Value: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${FlinkLogs}:log-stream:${Stream2}", Export: { Name: cfnxp-Stream2Arn } }
+  EmailConfigSet: { Value: !Ref EmailConfigSet, Export: { Name: cfnxp-EmailConfigSet } }

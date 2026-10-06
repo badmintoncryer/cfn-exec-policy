@@ -1,0 +1,8 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Logging:
+    Type: AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption
+    Properties:
+      ApplicationName: !ImportValue cfnxp-FlinkApp
+      CloudWatchLoggingOption: { LogStreamARN: !If [Two, !ImportValue cfnxp-Stream2Arn, !ImportValue cfnxp-Stream1Arn] }

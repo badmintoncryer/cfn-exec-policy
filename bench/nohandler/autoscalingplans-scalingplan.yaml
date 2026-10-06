@@ -1,0 +1,16 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Plan:
+    Type: AWS::AutoScalingPlans::ScalingPlan
+    Properties:
+      ApplicationSource: { TagFilters: [{ Key: cfnxp-plan, Values: [bench] }] }
+      ScalingInstructions:
+        - ServiceNamespace: autoscaling
+          ResourceId: !Sub
+            - autoScalingGroup/${Asg}
+            - { Asg: !ImportValue cfnxp-AsgName }
+          ScalableDimension: autoscaling:autoScalingGroup:DesiredCapacity
+          MinCapacity: 0
+          MaxCapacity: !Ref Phase
+          TargetTrackingConfigurations:
+            - { PredefinedScalingMetricSpecification: { PredefinedScalingMetricType: ASGAverageCPUUtilization }, TargetValue: 50 }

@@ -1,0 +1,10 @@
+# Unverified domain identity; nothing is sent.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Identity:
+    Type: AWS::PinpointEmail::Identity
+    Properties:
+      Name: cfnxp-bench.example.com
+      DkimSigningEnabled: !If [Two, false, true]
+      Tags: [{ Key: phase, Value: !Ref Phase }]

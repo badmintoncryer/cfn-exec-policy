@@ -1,0 +1,13 @@
+# Client VPN endpoint the authorization-rule stack references (issue #5), ap-northeast-1.
+# The CA and server certificates are bench's permanent ACM certificates.
+Resources:
+  Vpn:
+    Type: AWS::EC2::ClientVpnEndpoint
+    Properties:
+      ServerCertificateArn: arn:aws:acm:ap-northeast-1:214794239830:certificate/bf4e2b12-571b-41d7-b670-48bae1ee8418
+      AuthenticationOptions:
+        - { Type: certificate-authentication, MutualAuthentication: { ClientRootCertificateChainArn: arn:aws:acm:ap-northeast-1:214794239830:certificate/3d3eccc9-b008-4978-a645-0bfbd9f469bc } }
+      ClientCidrBlock: 10.251.0.0/22
+      ConnectionLogOptions: { Enabled: false }
+Outputs:
+  VpnId: { Value: !Ref Vpn, Export: { Name: cfnxp-VpnId } }
