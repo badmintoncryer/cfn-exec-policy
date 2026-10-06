@@ -19,9 +19,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
+// cfnAPI is the part of the CloudFormation client used here (a fake in tests).
+type cfnAPI interface {
+	GetTemplate(context.Context, *cloudformation.GetTemplateInput, ...func(*cloudformation.Options)) (*cloudformation.GetTemplateOutput, error)
+	ListStackResources(context.Context, *cloudformation.ListStackResourcesInput, ...func(*cloudformation.Options)) (*cloudformation.ListStackResourcesOutput, error)
+}
+
 type awsClients struct {
 	cfg     aws.Config
-	cfn     *cloudformation.Client
+	cfn     cfnAPI
 	iam     *iam.Client
 	account string
 	part    string
@@ -45,29 +51,54 @@ func newClients(ctx context.Context) (*awsClients, error) {
 }
 
 // deployedTemplates fetches the processed templates of the stacks that already exist,
-// so resources being removed still get delete permissions.
+// and of their nested stacks, so resources being removed still get delete permissions.
 func (c *awsClients) deployedTemplates(ctx context.Context, tpls []*Template) ([]*Template, error) {
 	var out []*Template
 	for _, t := range tpls {
 		if t.StackName == "" {
 			continue
 		}
-		res, err := c.cfn.GetTemplate(ctx, &cloudformation.GetTemplateInput{
-			StackName: aws.String(t.StackName), TemplateStage: cfntypes.TemplateStageProcessed,
-		})
+		ts, err := c.deployed(ctx, t.StackName)
 		if err != nil {
 			if strings.Contains(err.Error(), "does not exist") {
 				continue
 			}
-			return nil, fmt.Errorf("get template %s: %w", t.StackName, err)
-		}
-		dt, err := ParseTemplate("deployed:"+t.StackName, []byte(aws.ToString(res.TemplateBody)))
-		if err != nil {
 			return nil, err
 		}
-		// ponytail: deployed nested stacks aren't fetched, so a type removed only from a
-		// nested stack loses its delete permissions; follow the nested stack ARNs if that bites.
-		out = append(out, dt)
+		out = append(out, ts...)
+	}
+	return out, nil
+}
+
+// deployed returns the template of stack (a name or ARN) and, recursively, of its nested stacks.
+func (c *awsClients) deployed(ctx context.Context, stack string) ([]*Template, error) {
+	res, err := c.cfn.GetTemplate(ctx, &cloudformation.GetTemplateInput{
+		StackName: aws.String(stack), TemplateStage: cfntypes.TemplateStageProcessed,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get template %s: %w", stack, err)
+	}
+	t, err := ParseTemplate("deployed:"+stack, []byte(aws.ToString(res.TemplateBody)))
+	if err != nil {
+		return nil, err
+	}
+	out := []*Template{t}
+	p := cloudformation.NewListStackResourcesPaginator(c.cfn, &cloudformation.ListStackResourcesInput{StackName: aws.String(stack)})
+	for p.HasMorePages() {
+		page, err := p.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list resources %s: %w", stack, err)
+		}
+		for _, r := range page.StackResourceSummaries {
+			if aws.ToString(r.ResourceType) != "AWS::CloudFormation::Stack" || aws.ToString(r.PhysicalResourceId) == "" {
+				continue
+			}
+			nested, err := c.deployed(ctx, aws.ToString(r.PhysicalResourceId))
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, nested...)
+		}
 	}
 	return out, nil
 }

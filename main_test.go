@@ -1,9 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	cfntypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 func generate(t *testing.T, paths ...string) ([]string, []string) {
@@ -145,5 +151,51 @@ func TestHandWrittenOnlyForTypesWithoutHandlers(t *testing.T) {
 		if tbl.Types[typ] != nil {
 			t.Errorf("%s now has handler permissions in the schema; drop its hand-written row", typ)
 		}
+	}
+}
+
+type fakeCFN struct {
+	templates map[string]string
+	nested    map[string][]string
+}
+
+func (f fakeCFN) GetTemplate(_ context.Context, in *cloudformation.GetTemplateInput, _ ...func(*cloudformation.Options)) (*cloudformation.GetTemplateOutput, error) {
+	body, ok := f.templates[*in.StackName]
+	if !ok {
+		return nil, errors.New("Stack with id " + *in.StackName + " does not exist")
+	}
+	return &cloudformation.GetTemplateOutput{TemplateBody: &body}, nil
+}
+
+func (f fakeCFN) ListStackResources(_ context.Context, in *cloudformation.ListStackResourcesInput, _ ...func(*cloudformation.Options)) (*cloudformation.ListStackResourcesOutput, error) {
+	var out []cfntypes.StackResourceSummary
+	for _, arn := range f.nested[*in.StackName] {
+		out = append(out, cfntypes.StackResourceSummary{ResourceType: aws.String("AWS::CloudFormation::Stack"), PhysicalResourceId: aws.String(arn)})
+	}
+	return &cloudformation.ListStackResourcesOutput{StackResourceSummaries: out}, nil
+}
+
+// A type removed only from a deployed nested stack must keep its delete permissions.
+func TestDeployedNestedStacks(t *testing.T) {
+	c := &awsClients{cfn: fakeCFN{
+		templates: map[string]string{
+			"App":         `{"Resources":{"Inner":{"Type":"AWS::CloudFormation::Stack"}}}`,
+			"arn:inner":   `{"Resources":{"Inner2":{"Type":"AWS::CloudFormation::Stack"}}}`,
+			"arn:inner-2": `{"Resources":{"Topic":{"Type":"AWS::SNS::Topic"}}}`,
+		},
+		nested: map[string][]string{"App": {"arn:inner"}, "arn:inner": {"arn:inner-2"}},
+	}}
+	got, err := c.deployedTemplates(context.Background(), []*Template{{StackName: "App"}, {StackName: "NotDeployed"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var types []string
+	for _, tpl := range got {
+		for _, r := range tpl.Resources {
+			types = append(types, r.Type)
+		}
+	}
+	if !strings.Contains(strings.Join(types, " "), "AWS::SNS::Topic") {
+		t.Errorf("nested-of-nested template not fetched: %v", types)
 	}
 }

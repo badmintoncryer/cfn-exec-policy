@@ -34,8 +34,9 @@ actions each handler calls. For every resource type in your templates the
 policy grants the union of the create, read, update and delete handler
 permissions, so updates, replacements, rollbacks and deletes all work.
 
-- `check` and `apply` also read the **currently deployed** templates, so a
-  resource you just removed still has its delete permissions.
+- `check` and `apply` also read the **currently deployed** templates
+  (including nested stacks), so a resource you just removed still has its
+  delete permissions.
 - `apply` **never removes** actions already in the policy, because every app
   bootstrapped into the same account and region shares one execution role. Use
   `--prune` when you know the policy serves only this app. If that needs fewer
