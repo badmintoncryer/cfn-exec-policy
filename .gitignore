@@ -4,3 +4,5 @@ bench/cdk.out/
 bench/.bin/
 /cfn-exec-policy
 bench/nohandler/windows.log
+bench/nohandler/verify.log
+bench/nohandler/windows-iam.log
