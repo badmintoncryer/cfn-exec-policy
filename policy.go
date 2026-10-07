@@ -187,8 +187,14 @@ var handWritten = map[string][]string{
 	"AWS::ElasticLoadBalancingV2::ListenerCertificate": {"elasticloadbalancing:AddListenerCertificates", "elasticloadbalancing:RemoveListenerCertificates"},
 	"AWS::KinesisAnalyticsV2::ApplicationCloudWatchLoggingOption": {"kinesisanalytics:AddApplicationCloudWatchLoggingOption",
 		"kinesisanalytics:DeleteApplicationCloudWatchLoggingOption", "kinesisanalytics:DescribeApplication", "kinesisanalytics:UpdateApplication"},
+	"AWS::LakeFormation::DataLakeSettings": {"lakeformation:GetDataLakeSettings", "lakeformation:PutDataLakeSettings"},
+	// Lake Formation checks the Glue resource with the caller's credentials (not in CloudTrail).
+	// glue:GetTable is for TableResource grants, which bench did not exercise.
+	"AWS::LakeFormation::Permissions": {"glue:GetDatabase", "glue:GetTable", "lakeformation:GrantPermissions", "lakeformation:RevokePermissions"},
 	"AWS::LakeFormation::Resource": {"iam:GetRole", "iam:PassRole", "lakeformation:DeregisterResource", "lakeformation:RegisterResource",
 		"lakeformation:UpdateResource"},
+	"AWS::MediaLive::Channel": {"iam:PassRole", "medialive:CreateChannel", "medialive:CreateTags", "medialive:DeleteChannel",
+		"medialive:DeleteTags", "medialive:DescribeChannel", "medialive:UpdateChannel"},
 	"AWS::MediaLive::Input": {"iam:PassRole", "medialive:CreateInput", "medialive:CreateTags", "medialive:DeleteInput",
 		"medialive:DeleteTags", "medialive:DescribeInput", "medialive:UpdateInput"},
 	"AWS::MediaLive::InputSecurityGroup": {"medialive:CreateInputSecurityGroup", "medialive:CreateTags", "medialive:DeleteInputSecurityGroup", "medialive:DeleteTags"},

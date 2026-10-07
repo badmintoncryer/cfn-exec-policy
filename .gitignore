@@ -11,3 +11,6 @@ bench/nohandler/verify2.log
 bench/nohandler/windows3*.log
 bench/nohandler/verify3*.log
 bench/tags/*.log
+bench/nohandler/windows4*.log
+bench/nohandler/verify4*.log
+bench/passrole/*.log

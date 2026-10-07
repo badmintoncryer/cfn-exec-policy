@@ -1,0 +1,28 @@
+# Shared resources for the #5 batch 4 types, kept out of their CloudTrail windows.
+Resources:
+  LakePrincipal:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: glue.amazonaws.com}, Action: sts:AssumeRole}]
+  LakeDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput: {Name: cfnxp_bench_lf}
+  MediaLiveRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: medialive.amazonaws.com}, Action: sts:AssumeRole}]
+  MediaLiveInput:
+    Type: AWS::MediaLive::Input
+    Properties:
+      Name: cfnxp-bench-channel-input
+      Type: URL_PULL
+      Sources: [{Url: "https://example.com/live/stream.m3u8"}]
+Outputs:
+  LakePrincipalArn: {Value: !GetAtt LakePrincipal.Arn, Export: {Name: cfnxp-LakePrincipalArn}}
+  LakeDatabase: {Value: !Ref LakeDatabase, Export: {Name: cfnxp-LakeDatabase}}
+  MediaLiveRoleArn: {Value: !GetAtt MediaLiveRole.Arn, Export: {Name: cfnxp-MediaLiveRoleArn}}
+  MediaLiveInputId: {Value: !Ref MediaLiveInput, Export: {Name: cfnxp-MediaLiveInputId}}

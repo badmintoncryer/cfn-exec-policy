@@ -1,0 +1,28 @@
+# Never started: an idle channel bills a small hourly fee only.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Channel:
+    Type: AWS::MediaLive::Channel
+    Properties:
+      Name: !Sub cfnxp-bench-channel-${Phase}
+      ChannelClass: SINGLE_PIPELINE
+      RoleArn: !ImportValue cfnxp-MediaLiveRoleArn
+      InputSpecification: { Codec: AVC, Resolution: HD, MaximumBitrate: MAX_10_MBPS }
+      InputAttachments: [{ InputId: !ImportValue cfnxp-MediaLiveInputId, InputAttachmentName: in }]
+      Destinations: [{ Id: dest, Settings: [{ Url: "s3ssl://cfnxp-bench-medialive-unused/out" }] }]
+      EncoderSettings:
+        TimecodeConfig: { Source: EMBEDDED }
+        AudioDescriptions: []
+        VideoDescriptions:
+          - Name: video_1
+            Width: 640
+            Height: 360
+            CodecSettings:
+              H264Settings: { RateControlMode: CBR, Bitrate: 1000000, FramerateControl: SPECIFIED, FramerateNumerator: 30, FramerateDenominator: 1 }
+        OutputGroups:
+          - OutputGroupSettings: { ArchiveGroupSettings: { Destination: { DestinationRefId: dest } } }
+            Outputs:
+              - OutputName: out1
+                VideoDescriptionName: video_1
+                OutputSettings: { ArchiveOutputSettings: { NameModifier: _1, ContainerSettings: { M2tsSettings: {} } } }
+      Tags: { phase: !Ref Phase }

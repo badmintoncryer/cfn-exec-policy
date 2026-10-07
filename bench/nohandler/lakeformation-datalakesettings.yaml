@@ -1,0 +1,15 @@
+# Account-wide: carries the bench account's existing settings (2026-10-07) and adds
+# the caller as admin; restore with put-data-lake-settings afterwards.
+Parameters:
+  Phase: { Type: String, Default: "1" }
+  Admin: { Type: String }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Settings:
+    Type: AWS::LakeFormation::DataLakeSettings
+    Properties:
+      Admins: [{ DataLakePrincipalIdentifier: !Ref Admin }]
+      CreateDatabaseDefaultPermissions: [{ Principal: { DataLakePrincipalIdentifier: IAM_ALLOWED_PRINCIPALS }, Permissions: [ALL] }]
+      CreateTableDefaultPermissions: [{ Principal: { DataLakePrincipalIdentifier: IAM_ALLOWED_PRINCIPALS }, Permissions: [ALL] }]
+      Parameters: { CROSS_ACCOUNT_VERSION: "4", SET_CONTEXT: "TRUE" }
+      AllowFullTableExternalDataAccess: !If [Two, true, false]

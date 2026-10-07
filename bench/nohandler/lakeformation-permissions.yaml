@@ -1,0 +1,9 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Grant:
+    Type: AWS::LakeFormation::Permissions
+    Properties:
+      DataLakePrincipal: { DataLakePrincipalIdentifier: !ImportValue cfnxp-LakePrincipalArn }
+      Resource: { DatabaseResource: { Name: !ImportValue cfnxp-LakeDatabase } }
+      Permissions: !If [Two, [DESCRIBE, ALTER], [DESCRIBE]]
