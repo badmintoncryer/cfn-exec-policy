@@ -92,7 +92,7 @@ CloudFormationは、リソース型ごとにスキーマを公開しています
 - `check`と`apply`は、**今デプロイされている**テンプレートも読みます（ネストスタックも含む）。テンプレートから消したばかりのリソースも、削除に要る権限が残ります。
 - `apply`は、ポリシーにすでにあるアクションを**消しません**。同じアカウントとリージョンにbootstrapしたアプリは、すべて1つの実行ロールを共有するためです。このポリシーをこのアプリしか使わないとわかっているときは、`--prune`を付けます。`--prune`でポリシーの分割数が減った場合、余った`cfn-exec-policy-N`は中身を空にします（新しいARNの一覧で`cdk bootstrap`をやり直すまでは、実行ロールに付いたままです）。
 - タグの付け外しに要る権限は、スキーマのタグ用の欄からも足します。CDKの`Tags.of()`やスタックのタグで、タグを変えたり外したりしても通ります。
-- スキーマにハンドラの権限が書かれていないリソース型が、全体の7%ほどあります。実際のアカウントで測った型（`AWS::CodeBuild::Project`、`AWS::Glue::Table`、`AWS::Route53::RecordSetGroup`など）は、手で書いた一覧を使います。それ以外（`AWS::EMR::Cluster`など）には`<サービス>:*`と`iam:PassRole`を付けて、警告を出します。進み具合は [#5](https://github.com/badmintoncryer/cfn-exec-policy/issues/5) にあります。
+- スキーマにハンドラの権限が書かれていないリソース型が、全体の7%ほどあります。実際のアカウントで測った型（`AWS::CodeBuild::Project`、`AWS::LakeFormation::Resource`、`AWS::Route53::RecordSetGroup`など）は、手で書いた一覧を使います。それ以外（`AWS::EMR::Cluster`など）には`<サービス>:*`と`iam:PassRole`を付けて、警告を出します。進み具合は [#5](https://github.com/badmintoncryer/cfn-exec-policy/issues/5) にあります。
 - カスタムリソースには`lambda:InvokeFunction`と`sns:Publish`を付けます。動的参照とSSMパラメータ型には、それぞれ対応する`ssm`・`secretsmanager`・`kms`の読み取り権限を付けます。
 - `iam:PassRole`は、`iam:PassedToService`の条件を付けずに、`*`に対して許可します（スキーマに書かれている場合と、`<サービス>:*`で補う場合）。`--pass-role-condition`を付けると、テンプレートがロールを渡すサービスだけに絞ります。対象は、実際のアカウントで確かめた型（Lambda、Step Functions、EventBridgeのルール、ECS、S3のレプリケーション、API Gateway）です。ロールを渡すほかの型がテンプレートにあると、`iam:PassRole`は条件なしのまま残り、その型を警告で示します。
 - サイズの上限に収めるため、サービスごとの`Describe*` / `List*`はワイルドカードにまとめます。

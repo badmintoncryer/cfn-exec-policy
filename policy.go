@@ -165,7 +165,6 @@ type PolicyDocument struct {
 var handWritten = map[string][]string{
 	"AWS::AppSync::GraphQLSchema":              {"appsync:GetSchemaCreationStatus", "appsync:StartSchemaCreation"},
 	"AWS::CloudFormation::WaitConditionHandle": {},
-	"AWS::CloudWatch::AnomalyDetector":         {"cloudwatch:DeleteAnomalyDetector", "cloudwatch:PutAnomalyDetector"},
 	"AWS::CodeBuild::Project":                  {"codebuild:CreateProject", "codebuild:DeleteProject", "codebuild:UpdateProject", "iam:PassRole"},
 	"AWS::CodeBuild::ReportGroup": {"codebuild:BatchGetReportGroups", "codebuild:CreateReportGroup",
 		"codebuild:DeleteReportGroup", "codebuild:UpdateReportGroup"},
@@ -202,7 +201,6 @@ var handWritten = map[string][]string{
 	"AWS::EC2::ClientVpnAuthorizationRule": {"ec2:AuthorizeClientVpnIngress", "ec2:DescribeClientVpnAuthorizationRules",
 		"ec2:RevokeClientVpnIngress"},
 	"AWS::EC2::ClientVpnEndpoint":  {"ec2:CreateClientVpnEndpoint", "ec2:CreateTags", "ec2:DeleteClientVpnEndpoint", "ec2:DeleteTags", "ec2:DescribeClientVpnEndpoints"},
-	"AWS::Glue::Table":             {"glue:CreateTable", "glue:DeleteTable", "glue:UpdateTable"},
 	"AWS::Route53::RecordSetGroup": {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
 }
 
