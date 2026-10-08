@@ -6,12 +6,10 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  id-token: write
+  actions: write
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -29,9 +27,7 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git commit -am "chore: refresh permission table from CloudFormation schemas"
           git tag "$tag" && git push origin HEAD "$tag"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-  release:
-    needs: refresh
-    if: needs.refresh.outputs.tag != ''
-    uses: ./.github/workflows/release.yml
-    with: { tag: "${{ needs.refresh.outputs.tag }}" }
+          # A tag pushed with GITHUB_TOKEN starts no workflow; a dispatch does.
+          gh workflow run release.yml -f tag="$tag"
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -1,7 +1,8 @@
 # Releasing
 
 Releases run in GitHub Actions on a `v*` tag (and from the daily `refresh-table`
-workflow). They publish GitHub Release binaries with goreleaser and the npm
+workflow, which starts `release.yml` with `workflow_dispatch` so that npm sees
+`release.yml` as the publisher). They publish GitHub Release binaries with goreleaser and the npm
 packages with trusted publishing (OIDC). There are no long-lived tokens or repo
 secrets.
 
@@ -17,9 +18,7 @@ scripts/npm-publish.sh 0.0.1          # creates all 7 packages
 pkgs="cfn-exec-policy cdk-exec-policy"
 for p in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do pkgs="$pkgs cfn-exec-policy-$p"; done
 for p in $pkgs; do
-  for f in release.yml refresh-table.yml; do   # workflow_call is checked against the caller
-    npm trust github "$p" --repo badmintoncryer/cfn-exec-policy --file "$f" --allow-publish -y
-  done
+  npm trust github "$p" --repo badmintoncryer/cfn-exec-policy --file release.yml --allow-publish -y
 done
 ```
 

@@ -1,10 +1,10 @@
-# npm publishes through trusted publishing (OIDC): no npm token. Every package must
-# trust both this file and refresh-table.yml, because a workflow_call run is checked
-# against the calling workflow. See docs/release.md.
+# npm publishes through trusted publishing (OIDC): no npm token. npm trusts this
+# file only, so refresh-table.yml starts it with workflow_dispatch (a workflow_call
+# run is checked against the caller and fails). See docs/release.md.
 name: release
 on:
   push: { tags: ["v*"] }
-  workflow_call:
+  workflow_dispatch:
     inputs:
       tag: { type: string, required: true }
 permissions:
