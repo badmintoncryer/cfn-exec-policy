@@ -1,0 +1,18 @@
+Resources:
+  NoBoundary:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref NameParam
+      AssumeRolePolicyDocument: {}
+  Human:
+    Type: AWS::IAM::User
+  Readers:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Groups: [readers]
+      PolicyDocument: {}
+  PlainPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles: [x]
+      PolicyDocument: {}

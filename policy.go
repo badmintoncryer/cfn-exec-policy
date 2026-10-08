@@ -12,9 +12,9 @@ import (
 const MaxPolicySize = 6144
 
 // RequiredActions returns the actions the execution role needs to create, update
-// and delete every resource in the templates, plus warnings for guesses. With
-// passCond, iam:PassRole of a type in passedToService becomes a passRole token.
-func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions []string, warnings []string) {
+// and delete every resource in the templates, plus warnings for guesses and the types
+// guessed. With passCond, iam:PassRole of a type in passedToService becomes a passRole token.
+func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warnings, guessed []string) {
 	set := map[string]bool{}
 	add := func(as ...string) {
 		for _, a := range as {
@@ -44,8 +44,14 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions []str
 			case tbl.Prefixes[namespace(r.Type)] != "":
 				p := tbl.Prefixes[namespace(r.Type)]
 				as = []string{p + ":*", "iam:PassRole"}
+				if !contains(guessed, r.Type) {
+					guessed = append(guessed, r.Type)
+				}
 				warn("%s has no handler permissions in the schema; granting %s:* and iam:PassRole", r.Type, p)
 			default:
+				if !contains(guessed, r.Type) {
+					guessed = append(guessed, r.Type)
+				}
 				warn("%s is unknown; no permissions granted for it", r.Type)
 			}
 			for _, a := range as {
@@ -84,7 +90,8 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions []str
 			add("secretsmanager:GetSecretValue", "kms:Decrypt")
 		}
 	}
-	return sortedKeys(set), warnings
+	sort.Strings(guessed)
+	return sortedKeys(set), warnings, guessed
 }
 
 // Compact merges Describe*/List* actions per service and drops actions covered
@@ -260,26 +267,59 @@ func EmptyDocument() PolicyDocument {
 	}}
 }
 
-// Statement is a statement on all resources.
+// Statement is a policy statement; Resource is "*" or a list of ARNs.
 type Statement struct {
 	Sid       string                         `json:"Sid"`
 	Effect    string                         `json:"Effect"`
 	Action    []string                       `json:"Action"`
-	Resource  string                         `json:"Resource"`
+	Resource  any                            `json:"Resource"`
 	Condition map[string]map[string][]string `json:"Condition,omitempty"`
 }
 
-// newDoc builds part i; the first part also carries the conditioned PassRole.
-func newDoc(i int, actions, services []string) PolicyDocument {
+// newDoc builds part i; the first part also carries the PassRole statements and,
+// with strict, role creation limited to the boundary.
+func newDoc(i int, actions, services []string, strict *Strict) PolicyDocument {
 	d := PolicyDocument{Version: "2012-10-17"}
+	var create []string
+	var roles any = "*"
+	pass := false // strict: a scoped, unconditioned iam:PassRole
+	if strict != nil {
+		roles = strict.Roles
+		var rest []string
+		for _, a := range actions {
+			switch a {
+			case "iam:CreateRole", "iam:PutRolePermissionsBoundary":
+				create = append(create, a)
+			case "iam:PassRole":
+				pass = true
+			default:
+				rest = append(rest, a)
+			}
+		}
+		actions = rest
+		if len(strict.Roles) == 0 { // no role to pass, so no iam:PassRole at all
+			pass, services = false, nil
+		}
+	}
 	if len(actions) > 0 {
 		d.Statement = append(d.Statement, Statement{
 			Sid: fmt.Sprintf("CfnExecPolicy%d", i), Effect: "Allow", Action: actions, Resource: "*",
 		})
 	}
+	if len(create) > 0 {
+		d.Statement = append(d.Statement, Statement{
+			Sid: fmt.Sprintf("CfnExecPolicyCreateRole%d", i), Effect: "Allow", Action: create, Resource: "*",
+			Condition: map[string]map[string][]string{"StringLike": {"iam:PermissionsBoundary": {"arn:*:iam::*:policy/" + strict.Boundary}}},
+		})
+	}
+	if pass {
+		d.Statement = append(d.Statement, Statement{
+			Sid: fmt.Sprintf("CfnExecPolicyPassRoleScoped%d", i), Effect: "Allow", Action: []string{"iam:PassRole"}, Resource: roles,
+		})
+	}
 	if i == 1 && len(services) > 0 {
 		d.Statement = append(d.Statement, Statement{
-			Sid: "CfnExecPolicyPassRole", Effect: "Allow", Action: []string{"iam:PassRole"}, Resource: "*",
+			Sid: "CfnExecPolicyPassRole", Effect: "Allow", Action: []string{"iam:PassRole"}, Resource: roles,
 			Condition: map[string]map[string][]string{"StringEquals": {"iam:PassedToService": services}},
 		})
 	}
@@ -292,7 +332,8 @@ func size(d PolicyDocument) int {
 }
 
 // Documents splits actions into as few policy documents as fit the size limit.
-func Documents(actions []string) []PolicyDocument {
+// strict is nil unless --strict.
+func Documents(actions []string, strict *Strict) []PolicyDocument {
 	sort.Strings(actions)
 	var plain, services []string
 	for _, a := range actions {
@@ -305,14 +346,14 @@ func Documents(actions []string) []PolicyDocument {
 	var docs []PolicyDocument
 	var cur []string
 	for _, a := range plain {
-		if len(cur) > 0 && size(newDoc(len(docs)+1, append(append([]string{}, cur...), a), services)) > MaxPolicySize {
-			docs = append(docs, newDoc(len(docs)+1, cur, services))
+		if len(cur) > 0 && size(newDoc(len(docs)+1, append(append([]string{}, cur...), a), services, strict)) > MaxPolicySize {
+			docs = append(docs, newDoc(len(docs)+1, cur, services, strict))
 			cur = nil
 		}
 		cur = append(cur, a)
 	}
 	if len(cur) > 0 || len(docs) == 0 && len(services) > 0 {
-		docs = append(docs, newDoc(len(docs)+1, cur, services))
+		docs = append(docs, newDoc(len(docs)+1, cur, services, strict))
 	}
 	return docs
 }

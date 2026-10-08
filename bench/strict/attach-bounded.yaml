@@ -1,0 +1,8 @@
+# Attaches a policy to the pre-created role cfnxp-strict-app-target.
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles: [cfnxp-strict-app-target]
+      PolicyDocument:
+        Statement: [{Effect: Allow, Action: logs:CreateLogGroup, Resource: "*"}]

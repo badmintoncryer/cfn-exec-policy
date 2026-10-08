@@ -1,0 +1,20 @@
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: sts:AssumeRole}]
+      PermissionsBoundary: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/cfnxp-strict-boundary
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles: [!Ref Role]
+      PolicyDocument:
+        Statement: [{Effect: Allow, Action: logs:CreateLogGroup, Resource: "*"}]
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt Role.Arn
+      Code: {ZipFile: "exports.handler = async () => {};"}

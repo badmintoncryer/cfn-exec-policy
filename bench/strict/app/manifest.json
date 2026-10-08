@@ -1,0 +1,9 @@
+{
+  "version": "36.0.0",
+  "artifacts": {
+    "cfnxp-strict-app": {
+      "type": "aws:cloudformation:stack",
+      "properties": {"templateFile": "app.template.yaml", "stackName": "cfnxp-strict-app"}
+    }
+  }
+}
