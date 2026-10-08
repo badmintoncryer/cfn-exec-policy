@@ -278,6 +278,9 @@ type Statement struct {
 
 // newDoc builds part i; the first part also carries the PassRole statements and,
 // with strict, role creation limited to the boundary.
+// ponytail: strict writes the role list into part 1 twice and Documents moves only
+// plain actions to later parts, so hundreds of role patterns can push part 1 past
+// MaxPolicySize (apply then fails with IAM's error); split the roles too if that happens.
 func newDoc(i int, actions, services []string, strict *Strict) PolicyDocument {
 	d := PolicyDocument{Version: "2012-10-17"}
 	var create []string

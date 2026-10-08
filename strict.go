@@ -18,10 +18,9 @@ type Strict struct {
 
 // stackPart is how much of a long stack name CloudFormation keeps in a generated
 // role name: 64 characters minus the random suffix, split between stack name and
-// logical ID. Measured 2026-10-09: a 119-character stack name with a 65-character
-// logical ID kept 25 characters; with a 5-character logical ID it kept 36.
-// ponytail: assumes the split never gives the stack name less than 25; re-measure if
-// a deploy fails PassRole on a role whose name starts with fewer characters.
+// logical ID. Measured 2026-10-09 with a 119-character stack name: 25 characters kept
+// with 65- and 200-character logical IDs, 36 with a 5-character one; a 14-character
+// stack name was kept whole next to a 200-character logical ID.
 const stackPart = 25
 
 // literal returns a plain YAML/JSON string value; intrinsics (!Ref, {"Fn::Sub"}) are not.
