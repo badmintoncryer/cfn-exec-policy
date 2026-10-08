@@ -16,8 +16,8 @@ aws iam create-role --role-name cfnxp-strict-app-target --assume-role-policy-doc
 aws iam create-role --role-name cdk-cfnxp-strict-target --assume-role-policy-document "$(trust lambda.amazonaws.com)" --permissions-boundary $B >/dev/null
 aws iam create-role --role-name cfnxp-strict-unbounded --assume-role-policy-document "$(trust lambda.amazonaws.com)" >/dev/null
 # Control: the default (non-strict) policy for the same templates.
-go run . generate $D/app $D/noboundary.yaml > /tmp/cfnxp-default.json 2>/dev/null
-aws iam create-policy --policy-name cfnxp-default --policy-document file:///tmp/cfnxp-default.json >/dev/null
+f=$(mktemp); go run . generate $D/app $D/noboundary.yaml > $f 2>/dev/null
+aws iam create-policy --policy-name cfnxp-default --policy-document file://$f >/dev/null
 aws iam create-role --role-name cfnxp-default-exec --assume-role-policy-document "$(trust cloudformation.amazonaws.com)" >/dev/null
 aws iam attach-role-policy --role-name cfnxp-default-exec --policy-arn arn:aws:iam::$A:policy/cfnxp-default
 sleep 20 # IAM propagation
@@ -44,10 +44,11 @@ aws iam simulate-principal-policy --policy-source-arn arn:aws:iam::$A:role/cdk-c
 # Cleanup
 for s in cfnxp-strict-app cfnxp-strict-noboundary cfnxp-strict-attach-bounded cfnxp-strict-attach-cdk cfnxp-strict-attach-unbounded \
   cfnxp-strict-pass-bounded cfnxp-strict-pass-unbounded cfnxp-default-noboundary; do
-  aws cloudformation delete-stack --stack-name $s --role-arn arn:aws:iam::$A:role/cfnxp-default-exec 2>/dev/null
+  aws cloudformation delete-stack --stack-name $s # with the role it was created with
 done
 for s in cfnxp-strict-app cfnxp-strict-noboundary cfnxp-strict-attach-bounded cfnxp-strict-attach-cdk cfnxp-strict-attach-unbounded \
   cfnxp-strict-pass-bounded cfnxp-strict-pass-unbounded cfnxp-default-noboundary; do
   aws cloudformation wait stack-delete-complete --stack-name $s 2>/dev/null || echo "$s delete FAIL"
 done
+echo "stacks deleted; remove the IAM roles and policies with bench/strict/cleanup.sh"
 echo DONE

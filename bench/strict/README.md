@@ -3,7 +3,7 @@
 `app/` is the stack the policy is generated from (`apply --strict --policy-name cfnxp-strict bench/strict/app`).
 The other templates are deployed through `cdk-cfnxp-strict-exec`, an execution role holding that policy
 with `cfnxp-strict-boundary` as its permissions boundary. `run.sh` sets everything up, deploys, prints
-PASS/FAIL per template and cleans up.
+PASS/FAIL per template and deletes the stacks; `cleanup.sh` removes the IAM roles and policies.
 
 | Template | Expected |
 |---|---|
