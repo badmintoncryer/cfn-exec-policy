@@ -43,19 +43,21 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 | `generate [入力]` | ポリシーのJSONを表示する | 不要 |
 | `check [入力]` | テンプレートに要る権限が管理ポリシーに足りなければ、終了コード1で終わる。`cdk deploy`の前にCIで実行する。ポリシーは名前で読むだけで、実行ロールに付いているかまでは確かめない | 要（読み取りのみ） |
 | `apply [入力]` | 管理ポリシーを作成または更新し、`cdk bootstrap`のコマンドを表示する | 要 |
+| `delete` | 管理ポリシーを、分割した分も含めて削除する。どれかがまだロールに付いていれば止まる。`--yes`を付けなければ、削除するポリシーを表示するだけ | 要 |
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`apply --prune`。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`apply --prune`、`delete --yes`。
 
 ## 実行に要る権限
 
-ここで挙げるのは、`check`や`apply`を実行する側（CLIやCIの認証情報）に要る権限です。実行ロールの権限ではありません。
+ここで挙げるのは、`check`、`apply`、`delete`を実行する側（CLIやCIの認証情報）に要る権限です。実行ロールの権限ではありません。
 
 | コマンド | アクション |
 |---|---|
 | `check`、`apply` | `cloudformation:GetTemplate`、`cloudformation:ListStackResources`（デプロイ済みのテンプレートとネストスタックを読む）、`iam:GetPolicy`、`iam:GetPolicyVersion` |
 | `apply`のみ | `iam:CreatePolicy`、`iam:CreatePolicyVersion`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`（ポリシーの版がすでに5つあるとき、既定でない最も古い版を消す） |
+| `delete` | `iam:GetPolicy`、`iam:GetPolicyVersion`、`iam:ListEntitiesForPolicy`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`、`iam:DeletePolicy` |
 
 `sts:GetCallerIdentity`も呼びますが、これに権限は要りません。`generate`と`--refresh-schemas`には、AWSの権限は要りません。
 
@@ -81,7 +83,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 }
 ```
 
-`check`だけを実行するCIのロールなら、後ろの4つのIAMアクションは外せます。`--policy-name`を変えた場合は、Resourceもその名前に合わせます。
+`check`だけを実行するCIのロールなら、後ろの4つのIAMアクションは外せます。`delete`を実行するなら、`iam:ListEntitiesForPolicy`と`iam:DeletePolicy`を足します。`--policy-name`を変えた場合は、Resourceもその名前に合わせます。
 
 `apply`を実行できる人は、実行ロールにできることを決められます。つまり、どのデプロイで何ができるかを決められます。この権限は、デプロイの仕組みをすでに管理している人だけに渡してください。なお、`cdk bootstrap`自体もIAMロールを作る権限が要ります。そのため、最初の`apply`と`cdk bootstrap`は、たいてい管理者の認証情報で実行します。
 
@@ -104,18 +106,15 @@ CloudFormationは、リソース型ごとにスキーマを公開しています
 
 ## 使うのをやめるとき
 
-先に実行ロールを`AdministratorAccess`に戻します（bootstrapのスタックを消してもかまいません）。IAMは、ロールに付いたままのポリシーを削除できないためです。また、IAMはデフォルト以外のバージョンが残っているポリシーも削除できず、`DeleteConflict`になります。2回目以降の`apply`は、実行のたびにバージョンを1つ増やします（最大5つ）。そのため、ポリシーより先にバージョンを消します。
+先に実行ロールを`AdministratorAccess`に戻します（bootstrapのスタックを消してもかまいません）。IAMは、ロールに付いたままのポリシーを削除できないためです。そのあとで、ポリシーを削除します。
 
 ```sh
 cdk bootstrap aws://123456789012/us-east-1 --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess
-P=arn:aws:iam::123456789012:policy/cfn-exec-policy
-for v in $(aws iam list-policy-versions --policy-arn $P --query 'Versions[?!IsDefaultVersion].VersionId' --output text); do
-  aws iam delete-policy-version --policy-arn $P --version-id $v
-done
-aws iam delete-policy --policy-arn $P
+npx cfn-exec-policy delete         # 削除するポリシーを表示する
+npx cfn-exec-policy delete --yes
 ```
 
-ポリシーが分かれている場合は、`cfn-exec-policy-2`、… も同じように消します。
+`delete`は、分割したポリシー（`cfn-exec-policy-2`、…）と、`apply`のたびに増える古いバージョンも消します。IAMは、古いバージョンが残っているポリシーを削除できないためです。どれかがまだロールに付いていれば、何も消さずに上の`cdk bootstrap`のコマンドを表示します。
 
 ## インストール
 

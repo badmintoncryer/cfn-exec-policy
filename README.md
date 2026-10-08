@@ -49,23 +49,25 @@ something, so the deploy fails fast instead of mid-rollout. Re-run
 | `generate [inputs]` | Print the policy document(s) | no |
 | `check [inputs]` | Exit 1 if the managed policy is missing actions your templates need — put it in CI before `cdk deploy`. It reads the policy by name; it does not verify the exec role has it attached | yes (read-only) |
 | `apply [inputs]` | Create or update the managed policy, print the `cdk bootstrap` command | yes |
+| `delete` | Delete the managed policy and its split parts. Stops if any of them is still attached. Without `--yes`, only prints what it would delete | yes |
 
 Inputs are `cdk.out` directories (default: `./cdk.out`, including nested
 stacks and Stages) or CloudFormation templates (JSON or YAML).
 
 Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
-`--pass-role-condition` (see below), `apply --prune`.
+`--pass-role-condition` (see below), `apply --prune`, `delete --yes`.
 
 ## Permissions to run it
 
-These are the permissions of whoever runs `check` or `apply` (your CLI or CI
-credentials), not of the execution role.
+These are the permissions of whoever runs `check`, `apply` or `delete` (your
+CLI or CI credentials), not of the execution role.
 
 | Command | Actions |
 |---|---|
 | `check`, `apply` | `cloudformation:GetTemplate`, `cloudformation:ListStackResources` (deployed templates and nested stacks), `iam:GetPolicy`, `iam:GetPolicyVersion` |
 | `apply` only | `iam:CreatePolicy`, `iam:CreatePolicyVersion`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion` (deletes the oldest non-default version when the policy already has 5) |
+| `delete` | `iam:GetPolicy`, `iam:GetPolicyVersion`, `iam:ListEntitiesForPolicy`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion`, `iam:DeletePolicy` |
 
 `sts:GetCallerIdentity` is also called, but it needs no permission.
 `generate` and `--refresh-schemas` need no AWS permissions.
@@ -92,7 +94,8 @@ credentials), not of the execution role.
 }
 ```
 
-Drop the last four IAM actions for a `check`-only CI role. If you change
+Drop the last four IAM actions for a `check`-only CI role, and add
+`iam:ListEntitiesForPolicy` and `iam:DeletePolicy` to run `delete`. If you change
 `--policy-name`, change the resource to match.
 
 `apply` lets its caller decide what the execution role can do, and therefore
@@ -150,20 +153,18 @@ that can create IAM roles can still create an administrator role. Closing that
 
 Point the execution role back at `AdministratorAccess` (or delete the
 bootstrap stack) first, because IAM won't delete a policy that is still
-attached. IAM also refuses to delete a policy that has non-default versions
-(`DeleteConflict`), and every `apply` after the first adds one (up to five),
-so delete those versions before the policy:
+attached. Then delete the policy:
 
 ```sh
 cdk bootstrap aws://123456789012/us-east-1 --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess
-P=arn:aws:iam::123456789012:policy/cfn-exec-policy
-for v in $(aws iam list-policy-versions --policy-arn $P --query 'Versions[?!IsDefaultVersion].VersionId' --output text); do
-  aws iam delete-policy-version --policy-arn $P --version-id $v
-done
-aws iam delete-policy --policy-arn $P
+npx cfn-exec-policy delete         # lists what it would delete
+npx cfn-exec-policy delete --yes
 ```
 
-If the policy was split, do the same for `cfn-exec-policy-2`, …
+`delete` also removes the split parts (`cfn-exec-policy-2`, …) and the old
+versions that each `apply` leaves behind, which IAM requires before it deletes
+a policy. If a part is still attached, it deletes nothing and prints the
+`cdk bootstrap` command above.
 
 ## Install
 

@@ -19,6 +19,7 @@ Usage:
   cfn-exec-policy generate [flags] [cdk.out | template ...]   print the policy document(s)
   cfn-exec-policy check    [flags] [cdk.out | template ...]   exit 1 if the deployed policy is missing actions
   cfn-exec-policy apply    [flags] [cdk.out | template ...]   create/update the managed policy and print the bootstrap command
+  cfn-exec-policy delete   [--policy-name n] [--yes]          delete the managed policy (dry run without --yes)
   cfn-exec-policy version
 
 Inputs default to ./cdk.out. check and apply also include the currently deployed
@@ -38,6 +39,8 @@ func main() {
 		err = runCheck(os.Args[2:])
 	case "apply":
 		err = runApply(os.Args[2:])
+	case "delete":
+		err = runDelete(os.Args[2:])
 	case "table": // maintainer: regenerate table.json from a schema bundle
 		err = runTable(os.Args[2:])
 	case "version", "--version":
@@ -186,6 +189,59 @@ func runApply(args []string) error {
 	fmt.Fprintf(os.Stderr, "wrote %s\n\nNow point the execution role at it:\n\n", strings.Join(names, ", "))
 	fmt.Printf("cdk bootstrap aws://%s/%s --cloudformation-execution-policies %s\n",
 		clients.account, clients.cfg.Region, strings.Join(arns, ","))
+	return nil
+}
+
+func runDelete(args []string) error {
+	fs := flag.NewFlagSet("delete", flag.ExitOnError)
+	policyName := fs.String("policy-name", "cfn-exec-policy", "managed policy name (-2, -3, … are deleted too)")
+	yes := fs.Bool("yes", false, "delete; without it, only print what would be deleted")
+	fs.Parse(args)
+	ctx := context.Background()
+	clients, err := newClients(ctx)
+	if err != nil {
+		return err
+	}
+	_, parts, err := clients.existingActions(ctx, *policyName)
+	if err != nil {
+		return err
+	}
+	if parts == 0 {
+		return fmt.Errorf("policy %s not found", clients.policyArn(*policyName))
+	}
+	names := policyNames(*policyName, parts)
+	attached := false
+	for _, n := range names {
+		es, err := clients.attachedTo(ctx, n)
+		if err != nil {
+			return err
+		}
+		if len(es) > 0 {
+			attached = true
+			fmt.Fprintf(os.Stderr, "%s is attached to %s\n", n, strings.Join(es, ", "))
+		}
+	}
+	if attached {
+		// Detaching it here would leave the bootstrap stack pointing at a deleted
+		// policy, so let CloudFormation do it.
+		fmt.Fprintf(os.Stderr, "\nPoint the execution role back at AdministratorAccess (or delete the bootstrap stack) first:\n\n")
+		fmt.Printf("cdk bootstrap aws://%s/%s --cloudformation-execution-policies arn:%s:iam::aws:policy/AdministratorAccess\n",
+			clients.account, clients.cfg.Region, clients.part)
+		os.Exit(1)
+	}
+	if !*yes {
+		fmt.Fprintf(os.Stderr, "would delete %s\nre-run with --yes to delete\n", strings.Join(names, ", "))
+		return nil
+	}
+	// Base goes last: parts are found by walking from it, so a re-run after a
+	// partial failure still finds the rest.
+	for i := len(names) - 1; i >= 0; i-- {
+		n := names[i]
+		if err := clients.deletePolicy(ctx, n); err != nil {
+			return fmt.Errorf("%s: %w", n, err)
+		}
+	}
+	fmt.Fprintf(os.Stderr, "deleted %s\n", strings.Join(names, ", "))
 	return nil
 }
 
