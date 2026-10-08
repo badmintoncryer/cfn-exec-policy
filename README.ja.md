@@ -48,6 +48,43 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 
 フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`apply --prune`。
 
+## 実行に要る権限
+
+ここで挙げるのは、`check`や`apply`を実行する側（CLIやCIの認証情報）に要る権限です。実行ロールの権限ではありません。
+
+| コマンド | アクション |
+|---|---|
+| `check`、`apply` | `cloudformation:GetTemplate`、`cloudformation:ListStackResources`（デプロイ済みのテンプレートとネストスタックを読む）、`iam:GetPolicy`、`iam:GetPolicyVersion` |
+| `apply`のみ | `iam:CreatePolicy`、`iam:CreatePolicyVersion`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`（ポリシーの版がすでに5つあるとき、既定でない最も古い版を消す） |
+
+`sts:GetCallerIdentity`も呼びますが、これに権限は要りません。`generate`と`--refresh-schemas`には、AWSの権限は要りません。
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["cloudformation:GetTemplate", "cloudformation:ListStackResources"],
+      "Resource": "arn:aws:cloudformation:*:<account>:stack/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetPolicy", "iam:GetPolicyVersion",
+        "iam:CreatePolicy", "iam:CreatePolicyVersion",
+        "iam:ListPolicyVersions", "iam:DeletePolicyVersion"
+      ],
+      "Resource": "arn:aws:iam::<account>:policy/cfn-exec-policy*"
+    }
+  ]
+}
+```
+
+`check`だけを実行するCIのロールなら、後ろの4つのIAMアクションは外せます。`--policy-name`を変えた場合は、Resourceもその名前に合わせます。
+
+`apply`を実行できる人は、実行ロールにできることを決められます。つまり、どのデプロイで何ができるかを決められます。この権限は、デプロイの仕組みをすでに管理している人だけに渡してください。なお、`cdk bootstrap`自体もIAMロールを作る権限が要ります。そのため、最初の`apply`と`cdk bootstrap`は、たいてい管理者の認証情報で実行します。
+
 ## 仕組み
 
 CloudFormationは、リソース型ごとにスキーマを公開しています。スキーマには、作成・読み取り・更新・削除の各ハンドラが呼ぶIAMアクションが書かれています。このツールは、テンプレートに出てくるリソース型ごとに、この4つのハンドラの権限をすべて合わせて許可します。そのため、更新・置き換え・ロールバック・削除のどれも通ります。

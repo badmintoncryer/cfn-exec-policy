@@ -57,6 +57,50 @@ Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
 `--pass-role-condition` (see below), `apply --prune`.
 
+## Permissions to run it
+
+These are the permissions of whoever runs `check` or `apply` (your CLI or CI
+credentials), not of the execution role.
+
+| Command | Actions |
+|---|---|
+| `check`, `apply` | `cloudformation:GetTemplate`, `cloudformation:ListStackResources` (deployed templates and nested stacks), `iam:GetPolicy`, `iam:GetPolicyVersion` |
+| `apply` only | `iam:CreatePolicy`, `iam:CreatePolicyVersion`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion` (deletes the oldest non-default version when the policy already has 5) |
+
+`sts:GetCallerIdentity` is also called, but it needs no permission.
+`generate` and `--refresh-schemas` need no AWS permissions.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["cloudformation:GetTemplate", "cloudformation:ListStackResources"],
+      "Resource": "arn:aws:cloudformation:*:<account>:stack/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetPolicy", "iam:GetPolicyVersion",
+        "iam:CreatePolicy", "iam:CreatePolicyVersion",
+        "iam:ListPolicyVersions", "iam:DeletePolicyVersion"
+      ],
+      "Resource": "arn:aws:iam::<account>:policy/cfn-exec-policy*"
+    }
+  ]
+}
+```
+
+Drop the last four IAM actions for a `check`-only CI role. If you change
+`--policy-name`, change the resource to match.
+
+`apply` lets its caller decide what the execution role can do, and therefore
+what any deploy can do. Give it only to the people who already administer
+your deploy setup. `cdk bootstrap` itself also needs to create IAM roles, so
+the first `apply` and `cdk bootstrap` usually run with administrator
+credentials.
+
 ## How it works
 
 CloudFormation publishes a schema for every resource type, listing the IAM
