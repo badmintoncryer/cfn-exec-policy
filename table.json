@@ -766,6 +766,15 @@
    "appconfig:DeleteHostedConfigurationVersion",
    "appconfig:GetHostedConfigurationVersion"
   ],
+  "AWS::AppFabric::AppAuthorization": [
+   "appfabric:CreateAppAuthorization",
+   "appfabric:DeleteAppAuthorization",
+   "appfabric:GetAppAuthorization",
+   "appfabric:ListTagsForResource",
+   "appfabric:TagResource",
+   "appfabric:UntagResource",
+   "appfabric:UpdateAppAuthorization"
+  ],
   "AWS::AppFlow::Connector": [
    "appflow:DescribeConnector",
    "appflow:RegisterConnector",
@@ -3401,6 +3410,11 @@
    "cloudwatch:TagResource",
    "cloudwatch:UntagResource"
   ],
+  "AWS::CloudWatch::AnomalyDetector": [
+   "cloudwatch:DeleteAnomalyDetector",
+   "cloudwatch:DescribeAnomalyDetectors",
+   "cloudwatch:PutAnomalyDetector"
+  ],
   "AWS::CloudWatch::CompositeAlarm": [
    "cloudwatch:DeleteAlarms",
    "cloudwatch:DescribeAlarms",
@@ -6022,6 +6036,11 @@
    "ec2:DescribeCarrierGateways",
    "ec2:DescribeTags"
   ],
+  "AWS::EC2::ClientVpnRoute": [
+   "ec2:CreateClientVpnRoute",
+   "ec2:DeleteClientVpnRoute",
+   "ec2:DescribeClientVpnRoutes"
+  ],
   "AWS::EC2::CustomerGateway": [
    "ec2:CreateCustomerGateway",
    "ec2:CreateTags",
@@ -8369,17 +8388,6 @@
    "s3:GetAccessPoint",
    "s3:PutAccessPointPolicy"
   ],
-  "AWS::FSx::Volume": [
-   "fsx:CreateVolume",
-   "fsx:CreateVolumeFromBackup",
-   "fsx:DeleteVolume",
-   "fsx:DescribeStorageVirtualMachines",
-   "fsx:DescribeVolumes",
-   "fsx:ListTagsForResource",
-   "fsx:TagResource",
-   "fsx:UntagResource",
-   "fsx:UpdateVolume"
-  ],
   "AWS::FinSpace::Environment": [
    "finspace:CreateEnvironment",
    "finspace:DeleteEnvironment",
@@ -8925,6 +8933,24 @@
    "glue:TagResource",
    "glue:UntagResource",
    "iam:PassRole"
+  ],
+  "AWS::Glue::Table": [
+   "glue:CreateTable",
+   "glue:DeleteTable",
+   "glue:GetDatabase",
+   "glue:GetSchemaVersion",
+   "glue:GetTable",
+   "glue:PassConnection",
+   "glue:UpdateDatabase",
+   "glue:UpdateTable",
+   "iam:PassRole",
+   "lakeformation:CreateTable",
+   "lakeformation:DescribeLakeFormationIdentityCenterConfiguration",
+   "lakeformation:DescribeResource",
+   "lakeformation:GetDataAccess",
+   "lakeformation:ListResources",
+   "s3:GetObject",
+   "s3:PutObject"
   ],
   "AWS::Glue::TableOptimizer": [
    "glue:CreateTableOptimizer",
@@ -11257,6 +11283,24 @@
    "license-manager:TagResource",
    "license-manager:UntagResource",
    "license-manager:UpdateLicenseAssetRuleset"
+  ],
+  "AWS::LicenseManager::ReportGenerator": [
+   "license-manager:CreateLicenseManagerReportGenerator",
+   "license-manager:DeleteLicenseManagerReportGenerator",
+   "license-manager:GetLicenseConfiguration",
+   "license-manager:GetLicenseManagerReportGenerator",
+   "license-manager:GetServiceSettings",
+   "license-manager:TagResource",
+   "license-manager:UntagResource",
+   "license-manager:UpdateLicenseManagerReportGenerator"
+  ],
+  "AWS::LicenseManagerLinuxSubscriptions::SubscriptionProvider": [
+   "license-manager-linux-subscriptions:DeregisterSubscriptionProvider",
+   "license-manager-linux-subscriptions:GetRegisteredSubscriptionProvider",
+   "license-manager-linux-subscriptions:ListTagsForResource",
+   "license-manager-linux-subscriptions:RegisterSubscriptionProvider",
+   "license-manager-linux-subscriptions:TagResource",
+   "license-manager-linux-subscriptions:UntagResource"
   ],
   "AWS::Lightsail::Alarm": [
    "lightsail:DeleteAlarm",
@@ -19690,6 +19734,7 @@
   "AWS::ApiGateway": "apigateway",
   "AWS::ApiGatewayV2": "apigateway",
   "AWS::AppConfig": "appconfig",
+  "AWS::AppFabric": "appfabric",
   "AWS::AppFlow": "appflow",
   "AWS::AppIntegrations": "app-integrations",
   "AWS::AppMesh": "appmesh",
@@ -19838,6 +19883,7 @@
   "AWS::LaunchWizard": "launchwizard",
   "AWS::Lex": "lex",
   "AWS::LicenseManager": "license-manager",
+  "AWS::LicenseManagerLinuxSubscriptions": "license-manager-linux-subscriptions",
   "AWS::Lightsail": "lightsail",
   "AWS::Location": "geo",
   "AWS::Logs": "logs",
