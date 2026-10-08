@@ -102,6 +102,21 @@ CloudFormationは、リソース型ごとにスキーマを公開しています
 
 既定のモードは、実行ロールにできることを「すべて」から「テンプレートで使うサービスだけ」に狭めます。ただし、**セキュリティの境界ではありません**。IAMロールを作れるロールは、管理者権限のロールも作れてしまうからです。これを塞ぐ仕組み（スタックが作るすべてのロールにpermissions boundaryを付ける）は、`--strict`として追加する予定です。詳しくは[docs/design.md](docs/design.md)を見てください。
 
+## 使うのをやめるとき
+
+先に実行ロールを`AdministratorAccess`に戻します（bootstrapのスタックを消してもかまいません）。IAMは、ロールに付いたままのポリシーを削除できないためです。また、IAMはデフォルト以外のバージョンが残っているポリシーも削除できず、`DeleteConflict`になります。2回目以降の`apply`は、実行のたびにバージョンを1つ増やします（最大5つ）。そのため、ポリシーより先にバージョンを消します。
+
+```sh
+cdk bootstrap aws://123456789012/us-east-1 --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess
+P=arn:aws:iam::123456789012:policy/cfn-exec-policy
+for v in $(aws iam list-policy-versions --policy-arn $P --query 'Versions[?!IsDefaultVersion].VersionId' --output text); do
+  aws iam delete-policy-version --policy-arn $P --version-id $v
+done
+aws iam delete-policy --policy-arn $P
+```
+
+ポリシーが分かれている場合は、`cfn-exec-policy-2`、… も同じように消します。
+
 ## インストール
 
 ```sh

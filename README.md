@@ -146,6 +146,25 @@ that can create IAM roles can still create an administrator role. Closing that
 (a permissions boundary on every role the stack creates) is planned as
 `--strict`. See [docs/design.md](docs/design.md).
 
+## Removing it
+
+Point the execution role back at `AdministratorAccess` (or delete the
+bootstrap stack) first, because IAM won't delete a policy that is still
+attached. IAM also refuses to delete a policy that has non-default versions
+(`DeleteConflict`), and every `apply` after the first adds one (up to five),
+so delete those versions before the policy:
+
+```sh
+cdk bootstrap aws://123456789012/us-east-1 --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess
+P=arn:aws:iam::123456789012:policy/cfn-exec-policy
+for v in $(aws iam list-policy-versions --policy-arn $P --query 'Versions[?!IsDefaultVersion].VersionId' --output text); do
+  aws iam delete-policy-version --policy-arn $P --version-id $v
+done
+aws iam delete-policy --policy-arn $P
+```
+
+If the policy was split, do the same for `cfn-exec-policy-2`, …
+
 ## Install
 
 ```sh
