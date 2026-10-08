@@ -1,0 +1,9 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Domain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      ElasticsearchVersion: "7.10"
+      ElasticsearchClusterConfig: { InstanceType: t3.small.elasticsearch, InstanceCount: 1 }
+      EBSOptions: { EBSEnabled: true, VolumeSize: 10, VolumeType: gp3 }
+      Tags: [{ Key: phase, Value: !Ref Phase }]

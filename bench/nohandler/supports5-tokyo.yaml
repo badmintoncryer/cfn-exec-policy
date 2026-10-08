@@ -1,0 +1,13 @@
+# ap-northeast-1 (bench's permanent ACM certificates). The endpoint alone is free.
+Resources:
+  Vpn:
+    Type: AWS::EC2::ClientVpnEndpoint
+    Properties:
+      ServerCertificateArn: arn:aws:acm:ap-northeast-1:214794239830:certificate/bf4e2b12-571b-41d7-b670-48bae1ee8418
+      AuthenticationOptions:
+        - { Type: certificate-authentication, MutualAuthentication: { ClientRootCertificateChainArn: arn:aws:acm:ap-northeast-1:214794239830:certificate/3d3eccc9-b008-4978-a645-0bfbd9f469bc } }
+      ClientCidrBlock: 10.250.0.0/22
+      ConnectionLogOptions: { Enabled: false }
+      VpcId: vpc-9013e1f6
+Outputs:
+  Vpn: { Value: !Ref Vpn, Export: { Name: cfnxp-ClientVpnEndpoint } }

@@ -1,0 +1,11 @@
+# CloudFormation leaves a final backup on delete (OpenZFS default); bench deletes it.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  FileSystem:
+    Type: AWS::FSx::FileSystem
+    Properties:
+      FileSystemType: OPENZFS
+      StorageCapacity: 64
+      SubnetIds: [subnet-2e0a500f]
+      OpenZFSConfiguration: { DeploymentType: SINGLE_AZ_1, ThroughputCapacity: 64 }
+      Tags: [{ Key: phase, Value: !Ref Phase }]

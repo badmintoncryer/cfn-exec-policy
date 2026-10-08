@@ -1,0 +1,10 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Cluster:
+    Type: AWS::DAX::Cluster
+    Properties:
+      NodeType: dax.t3.small
+      ReplicationFactor: 1
+      IAMRoleARN: !ImportValue cfnxp-DaxRoleArn
+      SubnetGroupName: !ImportValue cfnxp-DaxSubnets
+      Description: !Sub phase ${Phase}

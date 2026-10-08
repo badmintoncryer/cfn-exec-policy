@@ -1,0 +1,79 @@
+# Shared resources for #9 (billed types), us-east-1 default VPC. The EMR fleet
+# cluster and the FSx file systems bill hourly: delete this stack right after.
+Parameters:
+  DocdbPassword: { Type: String, NoEcho: true }
+Resources:
+  DmsVpcRole:  # DMS requires this exact name
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: dms-vpc-role
+      AssumeRolePolicyDocument:
+        Statement: [{ Effect: Allow, Principal: { Service: dms.amazonaws.com }, Action: sts:AssumeRole }]
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole]
+  DaxRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{ Effect: Allow, Principal: { Service: dax.amazonaws.com }, Action: sts:AssumeRole }]
+  DaxSubnets:
+    Type: AWS::DAX::SubnetGroup
+    Properties: { SubnetIds: [subnet-2e0a500f, subnet-ab11fde7] }
+  DocdbCluster:
+    Type: AWS::DocDB::DBCluster
+    DeletionPolicy: Delete
+    Properties: { MasterUsername: cfnxp, MasterUserPassword: !Ref DocdbPassword }
+  EmrServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{ Effect: Allow, Principal: { Service: elasticmapreduce.amazonaws.com }, Action: sts:AssumeRole }]
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole]
+  EmrEc2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement: [{ Effect: Allow, Principal: { Service: ec2.amazonaws.com }, Action: sts:AssumeRole }]
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role]
+  EmrEc2Profile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: { Roles: [!Ref EmrEc2Role] }
+  EmrFleetCluster:
+    Type: AWS::EMR::Cluster
+    Properties:
+      Name: cfnxp-bench-fleet2  # renamed to replace it: a task fleet outlives its stack
+      ReleaseLabel: emr-7.5.0
+      ServiceRole: !Ref EmrServiceRole
+      JobFlowRole: !Ref EmrEc2Profile
+      VisibleToAllUsers: true
+      Instances:
+        KeepJobFlowAliveWhenNoSteps: true
+        Ec2SubnetIds: [subnet-2e0a500f]
+        MasterInstanceFleet:
+          TargetOnDemandCapacity: 1
+          InstanceTypeConfigs: [{ InstanceType: m5.xlarge }]
+        CoreInstanceFleet:  # a task fleet needs a core fleet
+          TargetOnDemandCapacity: 1
+          InstanceTypeConfigs: [{ InstanceType: m5.xlarge }]
+  ZfsForSnapshot:
+    Type: AWS::FSx::FileSystem
+    Properties:
+      FileSystemType: OPENZFS
+      StorageCapacity: 64
+      SubnetIds: [subnet-2e0a500f]
+      OpenZFSConfiguration: { DeploymentType: SINGLE_AZ_1, ThroughputCapacity: 64 }
+  OntapForSvm:
+    Type: AWS::FSx::FileSystem
+    Properties:
+      FileSystemType: ONTAP
+      StorageCapacity: 1024
+      SubnetIds: [subnet-2e0a500f]
+      OntapConfiguration: { DeploymentType: SINGLE_AZ_1, ThroughputCapacity: 128 }
+Outputs:
+  DaxRoleArn: { Value: !GetAtt DaxRole.Arn, Export: { Name: cfnxp-DaxRoleArn } }
+  DaxSubnets: { Value: !Ref DaxSubnets, Export: { Name: cfnxp-DaxSubnets } }
+  DocdbCluster: { Value: !Ref DocdbCluster, Export: { Name: cfnxp-DocdbCluster } }
+  EmrServiceRole: { Value: !Ref EmrServiceRole, Export: { Name: cfnxp-EmrServiceRole } }
+  EmrEc2Profile: { Value: !Ref EmrEc2Profile, Export: { Name: cfnxp-EmrEc2Profile } }
+  EmrFleetCluster: { Value: !Ref EmrFleetCluster, Export: { Name: cfnxp-EmrFleetCluster } }
+  ZfsRootVolume: { Value: !GetAtt ZfsForSnapshot.RootVolumeId, Export: { Name: cfnxp-ZfsRootVolume } }
+  OntapFs: { Value: !Ref OntapForSvm, Export: { Name: cfnxp-OntapFs } }

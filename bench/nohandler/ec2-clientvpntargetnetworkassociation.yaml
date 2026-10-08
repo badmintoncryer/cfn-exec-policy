@@ -1,0 +1,9 @@
+# ap-northeast-1. Bills per associated hour; phase 2 moves it to another subnet.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Association:
+    Type: AWS::EC2::ClientVpnTargetNetworkAssociation
+    Properties:
+      ClientVpnEndpointId: !ImportValue cfnxp-ClientVpnEndpoint
+      SubnetId: !If [Two, subnet-6352bc39, subnet-54e8571c]

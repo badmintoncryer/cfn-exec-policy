@@ -1,0 +1,15 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Cluster:
+    Type: AWS::EMR::Cluster
+    Properties:
+      Name: cfnxp-bench-cluster
+      ReleaseLabel: emr-7.5.0
+      ServiceRole: !ImportValue cfnxp-EmrServiceRole
+      JobFlowRole: !ImportValue cfnxp-EmrEc2Profile
+      VisibleToAllUsers: true
+      StepConcurrencyLevel: !Ref Phase
+      Instances:
+        KeepJobFlowAliveWhenNoSteps: true
+        Ec2SubnetId: subnet-2e0a500f
+        MasterInstanceGroup: { InstanceCount: 1, InstanceType: m5.xlarge }

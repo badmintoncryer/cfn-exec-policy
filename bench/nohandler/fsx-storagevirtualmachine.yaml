@@ -1,0 +1,8 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Svm:
+    Type: AWS::FSx::StorageVirtualMachine
+    Properties:
+      Name: cfnxpbench
+      FileSystemId: !ImportValue cfnxp-OntapFs
+      Tags: [{ Key: phase, Value: !Ref Phase }]

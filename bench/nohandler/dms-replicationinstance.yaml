@@ -1,0 +1,11 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Instance:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      ReplicationInstanceClass: dms.t3.small
+      AllocatedStorage: 20
+      PubliclyAccessible: false
+      MultiAZ: false
+      AutoMinorVersionUpgrade: !If [Two, true, false]

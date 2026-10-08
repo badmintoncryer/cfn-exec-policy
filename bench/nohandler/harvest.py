@@ -41,6 +41,8 @@ def main():
     evs = [e for e in events(start, end, user) if e.get("userIdentity", {}).get("invokedBy") == "cloudformation.amazonaws.com"]
     rows = {}
     for t, m in marks.items():
+        if len(m) < 4:  # the type failed before finishing; nothing to read
+            continue
         bounds = [("create", m["create"], m["update"]), ("update", m["update"], m["delete"]), ("delete", m["delete"], m["end"])]
         rows[t] = {}
         for phase, a, b in bounds:

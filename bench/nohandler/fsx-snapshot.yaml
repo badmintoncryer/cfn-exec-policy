@@ -1,0 +1,7 @@
+Parameters: { Phase: { Type: String, Default: "1" } }
+Resources:
+  Snapshot:
+    Type: AWS::FSx::Snapshot
+    Properties:
+      Name: !Sub cfnxp-bench-${Phase}
+      VolumeId: !ImportValue cfnxp-ZfsRootVolume

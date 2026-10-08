@@ -1,0 +1,17 @@
+# ap-northeast-1. The route needs an associated subnet; the association's own calls
+# are known from ec2-clientvpntargetnetworkassociation and are subtracted.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Association:
+    Type: AWS::EC2::ClientVpnTargetNetworkAssociation
+    Properties:
+      ClientVpnEndpointId: !ImportValue cfnxp-ClientVpnEndpoint
+      SubnetId: subnet-c3a721e8
+  Route:
+    Type: AWS::EC2::ClientVpnRoute
+    DependsOn: Association
+    Properties:
+      ClientVpnEndpointId: !ImportValue cfnxp-ClientVpnEndpoint
+      TargetVpcSubnetId: subnet-c3a721e8
+      DestinationCidrBlock: !If [Two, 0.0.0.0/0, 10.99.0.0/16]  # the association adds 172.31.0.0/16 itself

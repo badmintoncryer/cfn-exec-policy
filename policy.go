@@ -202,6 +202,29 @@ var handWritten = map[string][]string{
 		"ec2:RevokeClientVpnIngress"},
 	"AWS::EC2::ClientVpnEndpoint":  {"ec2:CreateClientVpnEndpoint", "ec2:CreateTags", "ec2:DeleteClientVpnEndpoint", "ec2:DeleteTags", "ec2:DescribeClientVpnEndpoints"},
 	"AWS::Route53::RecordSetGroup": {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
+	// Hourly-billed types (#9), measured 2026-10-08. Tag actions not exercised on bench
+	// come from the IAM docs, as above.
+	"AWS::DAX::Cluster": {"dax:CreateCluster", "dax:DeleteCluster", "dax:DescribeClusters", "dax:ListTags",
+		"dax:TagResource", "dax:UntagResource", "dax:UpdateCluster", "iam:PassRole"},
+	"AWS::DocDB::DBInstance": {"rds:AddTagsToResource", "rds:CreateDBInstance", "rds:DeleteDBInstance",
+		"rds:DescribeDBInstances", "rds:ListTagsForResource", "rds:ModifyDBInstance", "rds:RemoveTagsFromResource"},
+	"AWS::DMS::ReplicationInstance": {"dms:AddTagsToResource", "dms:CreateReplicationInstance", "dms:DeleteReplicationInstance",
+		"dms:DescribeReplicationInstances", "dms:ListTagsForResource", "dms:ModifyReplicationInstance", "dms:RemoveTagsFromResource"},
+	"AWS::EC2::ClientVpnTargetNetworkAssociation": {"ec2:AssociateClientVpnTargetNetwork",
+		"ec2:DescribeClientVpnTargetNetworks", "ec2:DisassociateClientVpnTargetNetwork"},
+	"AWS::EMR::Cluster": {"elasticmapreduce:AddTags", "elasticmapreduce:DescribeCluster", "elasticmapreduce:ModifyCluster",
+		"elasticmapreduce:RemoveTags", "elasticmapreduce:RunJobFlow", "elasticmapreduce:TerminateJobFlows", "iam:PassRole"},
+	// Delete scales the task fleet to zero; EMR cannot remove a fleet from a running cluster.
+	"AWS::EMR::InstanceFleetConfig": {"elasticmapreduce:AddInstanceFleet", "elasticmapreduce:ListInstanceFleets",
+		"elasticmapreduce:ModifyInstanceFleet"},
+	"AWS::Elasticsearch::Domain": {"es:AddTags", "es:CreateElasticsearchDomain", "es:DeleteElasticsearchDomain",
+		"es:DescribeElasticsearchDomain", "es:ListTags", "es:RemoveTags", "iam:PassRole"},
+	"AWS::FSx::FileSystem": {"fsx:CreateFileSystem", "fsx:DeleteFileSystem", "fsx:DescribeFileSystems",
+		"fsx:TagResource", "fsx:UntagResource", "fsx:UpdateFileSystem"},
+	"AWS::FSx::Snapshot": {"fsx:CreateSnapshot", "fsx:DeleteSnapshot", "fsx:DescribeSnapshots",
+		"fsx:TagResource", "fsx:UntagResource", "fsx:UpdateSnapshot"},
+	"AWS::FSx::StorageVirtualMachine": {"fsx:CreateStorageVirtualMachine", "fsx:DeleteStorageVirtualMachine",
+		"fsx:DescribeStorageVirtualMachines", "fsx:TagResource", "fsx:UntagResource"},
 }
 
 // passRole prefixes a token meaning "iam:PassRole, only to this service":

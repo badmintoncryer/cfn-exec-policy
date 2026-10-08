@@ -1,0 +1,11 @@
+# One on-demand task instance, two in phase 2, for a few minutes.
+Parameters: { Phase: { Type: String, Default: "1" } }
+Conditions: { Two: !Equals [!Ref Phase, "2"] }
+Resources:
+  Fleet:
+    Type: AWS::EMR::InstanceFleetConfig
+    Properties:
+      ClusterId: !ImportValue cfnxp-EmrFleetCluster
+      InstanceFleetType: TASK
+      TargetOnDemandCapacity: !If [Two, 2, 1]
+      InstanceTypeConfigs: [{ InstanceType: m5.xlarge }]
