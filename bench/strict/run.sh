@@ -48,7 +48,12 @@ for s in cfnxp-strict-app cfnxp-strict-noboundary cfnxp-strict-attach-bounded cf
 done
 for s in cfnxp-strict-app cfnxp-strict-noboundary cfnxp-strict-attach-bounded cfnxp-strict-attach-cdk cfnxp-strict-attach-unbounded \
   cfnxp-strict-pass-bounded cfnxp-strict-pass-unbounded cfnxp-default-noboundary; do
-  aws cloudformation wait stack-delete-complete --stack-name $s 2>/dev/null || echo "$s delete FAIL"
+  aws cloudformation wait stack-delete-complete --stack-name $s 2>/dev/null && continue
+  # attach-cdk is expected here: its rollback detaches from a cdk-* role, which the boundary denies.
+  failed=$(aws cloudformation describe-stack-resources --stack-name $s --query "StackResources[?ResourceStatus=='DELETE_FAILED'].LogicalResourceId" --output text)
+  echo "$s delete FAIL ($failed); retaining it, cleanup.sh removes it"
+  aws cloudformation delete-stack --stack-name $s --retain-resources $failed
+  aws cloudformation wait stack-delete-complete --stack-name $s
 done
 echo "stacks deleted; remove the IAM roles and policies with bench/strict/cleanup.sh"
 echo DONE
