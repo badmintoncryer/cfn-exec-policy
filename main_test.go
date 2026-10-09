@@ -29,7 +29,8 @@ func generateWith(t *testing.T, passCond bool, paths ...string) ([]string, []str
 	if err != nil {
 		t.Fatal(err)
 	}
-	return RequiredActions(tbl, tpls, passCond)
+	a, w, _ := RequiredActions(tbl, tpls, passCond)
+	return a, w
 }
 
 func TestCdkOut(t *testing.T) {
@@ -97,7 +98,7 @@ func TestDocumentsSplitUnderLimit(t *testing.T) {
 	for i := 0; i < 600; i++ {
 		actions = append(actions, "service:SomeFairlyLongActionName"+strings.Repeat("x", i%7)+string(rune('a'+i%26))+strings.Repeat("y", i/26))
 	}
-	docs := Documents(actions)
+	docs := Documents(actions, nil)
 	if len(docs) < 2 {
 		t.Fatalf("expected a split, got %d doc", len(docs))
 	}
@@ -114,7 +115,7 @@ func TestDocumentsSplitUnderLimit(t *testing.T) {
 }
 
 func TestAllowedActionsRoundTrip(t *testing.T) {
-	b, _ := json.Marshal(newDoc(1, []string{"s3:*", "sqs:CreateQueue"}, nil))
+	b, _ := json.Marshal(newDoc(1, []string{"s3:*", "sqs:CreateQueue"}, nil, nil))
 	got, err := AllowedActions(b)
 	if err != nil || strings.Join(got, ",") != "s3:*,sqs:CreateQueue" {
 		t.Fatalf("got %v %v", got, err)
@@ -236,7 +237,7 @@ func TestPassRoleCondition(t *testing.T) {
 	if len(warnings) > 0 || contains(actions, "iam:PassRole") {
 		t.Fatalf("mapped types must not need a bare iam:PassRole: %v %v", warnings, actions)
 	}
-	docs := Documents(Compact(actions))
+	docs := Documents(Compact(actions), nil)
 	if len(docs) != 1 || len(docs[0].Statement) != 2 {
 		t.Fatalf("want one document with a conditioned statement: %+v", docs)
 	}
@@ -269,9 +270,119 @@ func TestPassRoleConditionUnmappedTypeStaysBare(t *testing.T) {
 	if !contains(actions, "iam:PassRole") || len(warnings) != 1 {
 		t.Fatalf("an unmapped type must keep a bare iam:PassRole with a warning: %v %v", warnings, actions)
 	}
-	for _, d := range Documents(Compact(actions)) {
+	for _, d := range Documents(Compact(actions), nil) {
 		if len(d.Statement) != 1 {
 			t.Fatalf("the bare grant covers the conditioned one; no second statement: %+v", d)
 		}
+	}
+}
+
+func TestStrictErrors(t *testing.T) {
+	tpls, err := LoadInputs([]string{"testdata/strict", "testdata/strict-bad.yaml"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	errs := strings.Join(StrictErrors(tpls, "b"), "\n")
+	for _, want := range []string{"NoBoundary has no PermissionsBoundary", `{"name": "b"}`, "Human (AWS::IAM::User)", "Readers (AWS::IAM::ManagedPolicy)"} {
+		if !strings.Contains(errs, want) {
+			t.Errorf("missing %q in:\n%s", want, errs)
+		}
+	}
+	for _, not := range []string{"Bounded", "Named", "PlainPolicy"} {
+		if strings.Contains(errs, not) {
+			t.Errorf("%s flagged:\n%s", not, errs)
+		}
+	}
+}
+
+func TestPassRoleScope(t *testing.T) {
+	tpls, err := LoadInputs([]string{"testdata/strict"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	roles, warnings, err := PassRoleScope(tpls)
+	want := "arn:*:iam::*:role/StrictApp-*,arn:*:iam::*:role/my-fixed-role,arn:*:iam::*:role/service-role/external-role"
+	if err != nil || strings.Join(roles, ",") != want || len(warnings) > 0 {
+		t.Errorf("got %v %v %v", roles, warnings, err)
+	}
+	// CloudFormation keeps 25 characters of a long stack name in generated role names.
+	long := &Template{StackName: strings.Repeat("a", 30), Path: "x"}
+	if roles, _, _ := PassRoleScope([]*Template{long}); roles[0] != "arn:*:iam::*:role/"+strings.Repeat("a", 25)+"*" {
+		t.Errorf("long stack name: %v", roles)
+	}
+	bad, err := LoadInputs([]string{"testdata/strict-bad.yaml"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := PassRoleScope(bad); err == nil {
+		t.Error("a template file without a stack name should be an error")
+	}
+	bad[0].StackName = "Bad"
+	if roles, warnings, _ := PassRoleScope(bad); len(roles) != 1 || len(warnings) != 1 || !strings.Contains(warnings[0], "RoleName of NoBoundary") {
+		t.Errorf("!Ref RoleName should warn, not widen: %v %v", roles, warnings)
+	}
+}
+
+func TestStrictDocuments(t *testing.T) {
+	s := &Strict{Boundary: "b", Roles: []string{"arn:*:iam::*:role/App-*"}}
+	b, _ := json.Marshal(Documents([]string{"iam:CreateRole", "iam:GetRole", "iam:PassRole", "iam:PassRole>lambda.amazonaws.com"}, s))
+	got := string(b)
+	for _, want := range []string{
+		`"Action":["iam:GetRole"],"Resource":"*"`,
+		`"Action":["iam:CreateRole"],"Resource":"*","Condition":{"StringLike":{"iam:PermissionsBoundary":["arn:*:iam::*:policy/b"]}}`,
+		`"Action":["iam:PassRole"],"Resource":["arn:*:iam::*:role/App-*"]}`,
+		`"Action":["iam:PassRole"],"Resource":["arn:*:iam::*:role/App-*"],"Condition":{"StringEquals":{"iam:PassedToService":["lambda.amazonaws.com"]}}`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %s in %s", want, got)
+		}
+	}
+	if strings.Count(got, "iam:PassRole") != 2 || strings.Count(got, "iam:CreateRole") != 1 {
+		t.Errorf("PassRole or CreateRole granted elsewhere: %s", got)
+	}
+	none, _ := json.Marshal(Documents([]string{"iam:PassRole", "iam:PassRole>lambda.amazonaws.com", "s3:GetObject"}, &Strict{Boundary: "b"}))
+	if strings.Contains(string(none), "PassRole") {
+		t.Errorf("no roles to pass, yet: %s", none)
+	}
+}
+
+func TestBoundaryName(t *testing.T) {
+	for in, want := range map[string]string{"b": "b", "arn:aws:iam::111111111111:policy/team/b": "team/b"} {
+		if got, err := boundaryName(in, "111111111111"); got != want || err != nil {
+			t.Errorf("%s: %s %v", in, got, err)
+		}
+	}
+	for _, in := range []string{"arn:aws:iam::222222222222:policy/b", "arn:aws:s3:::b"} {
+		if _, err := boundaryName(in, "111111111111"); err == nil {
+			t.Errorf("%s accepted", in)
+		}
+	}
+}
+
+func TestGuessedTypes(t *testing.T) {
+	tbl, err := LoadTable(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpls, err := LoadInputs([]string{"testdata/cdk.out"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, guessed := RequiredActions(tbl, tpls, false); strings.Join(guessed, ",") != "AWS::Greengrass::Group,Third::Party::Thing" {
+		t.Errorf("guessed %v", guessed)
+	}
+}
+
+func TestBoundaryProtectsOnlyThisToolsPolicies(t *testing.T) {
+	b, _ := json.Marshal(BoundaryDocument("aws", "1", "p-boundary", "p"))
+	got := string(b)
+	for _, want := range []string{`"arn:aws:iam::1:policy/p"`, `"arn:aws:iam::1:policy/p-?"`, `"arn:aws:iam::1:policy/p-boundary"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+	// A stack named p-app creates policies named p-app-Policy-…; the boundary must not freeze them.
+	if strings.Contains(got, `policy/p*"`) {
+		t.Errorf("prefix wildcard on the policy name: %s", got)
 	}
 }

@@ -18,12 +18,13 @@ type Template struct {
 		Type string `yaml:"Type"`
 	} `yaml:"Parameters"`
 	Resources map[string]struct {
-		Type string `yaml:"Type"`
+		Type       string               `yaml:"Type"`
+		Properties map[string]yaml.Node `yaml:"Properties"`
 	} `yaml:"Resources"`
 }
 
 // ParseTemplate parses JSON or YAML; short-form intrinsics (!Ref…) are tolerated
-// because only Parameters/Resources types are decoded.
+// because only Parameters and Resources are decoded.
 func ParseTemplate(path string, raw []byte) (*Template, error) {
 	t := &Template{Path: path, Raw: raw}
 	if err := yaml.Unmarshal(raw, t); err != nil {

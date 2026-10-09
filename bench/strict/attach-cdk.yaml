@@ -1,0 +1,9 @@
+# Attaches a policy to the pre-created role cdk-cfnxp-strict-target.
+Resources:
+  Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Roles: [cdk-cfnxp-strict-target]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Action: logs:CreateLogGroup, Resource: "*"}]

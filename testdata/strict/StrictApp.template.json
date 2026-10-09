@@ -1,0 +1,28 @@
+{
+  "Resources": {
+    "Bounded": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {"Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
+        "PermissionsBoundary": {"Fn::Join": ["", ["arn:", {"Ref": "AWS::Partition"}, ":iam::", {"Ref": "AWS::AccountId"}, ":policy/cfn-exec-policy-boundary"]]}
+      }
+    },
+    "Named": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "my-fixed-role",
+        "AssumeRolePolicyDocument": {"Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
+        "PermissionsBoundary": "arn:aws:iam::123456789012:policy/cfn-exec-policy-boundary"
+      }
+    },
+    "Fn": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {"ZipFile": "exports.handler=async()=>{}"},
+        "Handler": "index.handler",
+        "Runtime": "nodejs22.x",
+        "Role": {"Fn::Join": ["", ["arn:", {"Ref": "AWS::Partition"}, ":iam::123456789012:role/service-role/external-role"]]}
+      }
+    }
+  }
+}

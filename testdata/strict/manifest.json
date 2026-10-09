@@ -1,0 +1,9 @@
+{
+  "version": "36.0.0",
+  "artifacts": {
+    "StrictApp": {
+      "type": "aws:cloudformation:stack",
+      "properties": {"templateFile": "StrictApp.template.json", "stackName": "StrictApp"}
+    }
+  }
+}
