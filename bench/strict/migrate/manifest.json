@@ -1,0 +1,8 @@
+{
+  "version": "36.0.0",
+  "artifacts": {
+    "cfnxp-mig-a": {"type": "aws:cloudformation:stack", "properties": {"templateFile": "a.yaml", "stackName": "cfnxp-mig-a"}},
+    "cfnxp-mig-b": {"type": "aws:cloudformation:stack", "properties": {"templateFile": "b.yaml", "stackName": "cfnxp-mig-b"}},
+    "cfnxp-mig-c": {"type": "aws:cloudformation:stack", "properties": {"templateFile": "c.yaml", "stackName": "cfnxp-mig-c"}}
+  }
+}
