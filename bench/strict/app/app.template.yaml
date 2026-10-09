@@ -10,6 +10,7 @@ Resources:
     Properties:
       Roles: [!Ref Role]
       PolicyDocument:
+        Version: "2012-10-17"
         Statement: [{Effect: Allow, Action: logs:CreateLogGroup, Resource: "*"}]
   Fn:
     Type: AWS::Lambda::Function
