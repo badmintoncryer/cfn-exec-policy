@@ -197,8 +197,8 @@ boundaries; only the execution role's own `iam:PassRole` is narrowed. `check`
 compares actions only and does not notice a widened `Resource` or `Condition`.
 
 Roles deployed before you turn on `--strict` get the boundary on the next
-deploy. That deploy may fail if it also changes their policies; this has not
-been checked on a real account. See [docs/design.md](docs/design.md).
+deploy, even when that deploy also changes their inline or managed policies
+(checked on a real account). See [docs/design.md](docs/design.md).
 
 ## Install
 
