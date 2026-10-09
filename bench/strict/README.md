@@ -31,5 +31,26 @@ other than Lambda, is not allowed. The default policy allows the same role creat
 attach and PassRole. With `DenyRolesWithoutBoundary` and `DenyCdkRoles` removed from the
 boundary, 7 cases mismatch, so the checks tell the two apart.
 
-`run.sh` (real deploys through CloudFormation) needs IAM role creation, which has to be
-run by hand.
+## Real deploys: `run.sh`
+
+`run.sh` creates IAM roles, so run it by hand. 2026-10-09, ap-northeast-1, all as expected:
+
+| Stack | Result |
+|---|---|
+| cfnxp-strict-app | PASS, and deleted through the strict role |
+| cfnxp-strict-noboundary | FAIL: not authorized to perform `iam:CreateRole` |
+| cfnxp-default-noboundary (control) | PASS: the default policy lets an admin role without a boundary through |
+| cfnxp-strict-attach-bounded | PASS |
+| cfnxp-strict-attach-cdk | FAIL: `iam:AttachRolePolicy` explicit deny in the boundary |
+| cfnxp-strict-attach-unbounded | FAIL: `iam:AttachRolePolicy` explicit deny in the boundary |
+| cfnxp-strict-pass-bounded | PASS |
+| cfnxp-strict-pass-unbounded | FAIL: no identity-based policy allows `iam:PassRole` |
+
+The simulator also showed explicit denies for `iam:CreatePolicyVersion` on the exec policy and
+`iam:AttachRolePolicy` / `iam:PutRolePolicy` on the exec role itself.
+
+The first runs found a bug the simulator missed: the boundary denied editing `policy/<policy-name>*`,
+which also froze `cfnxp-strict-app-Policy-*`, so the app stack could not delete its own policy. The
+boundary now names the policies exactly. `attach-cdk` still cannot be deleted cleanly: its rollback
+detaches from a `cdk-*` role, which the boundary denies, so `run.sh` retains the policy and
+`cleanup.sh` removes it.
