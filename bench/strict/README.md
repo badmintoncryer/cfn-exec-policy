@@ -54,3 +54,19 @@ which also froze `cfnxp-strict-app-Policy-*`, so the app stack could not delete 
 boundary now names the policies exactly. `attach-cdk` still cannot be deleted cleanly: its rollback
 detaches from a `cdk-*` role, which the boundary denies, so `run.sh` retains the policy and
 `cleanup.sh` removes it.
+
+## Roles that get the boundary later: `migrate.sh`
+
+Each stack is created through a default (non-strict) exec role with a role that has no
+boundary, updated through the strict exec role to add the boundary, then deleted through it.
+`migrate.sh` sets up, runs and removes everything. 2026-10-09, ap-northeast-1:
+
+| Variant | Phase 2 | Update | Delete |
+|---|---|---|---|
+| a | boundary only | PASS, boundary set | PASS |
+| b | boundary + inline policy change | PASS, boundary set | PASS |
+| c | boundary + another managed policy | PASS, boundary set | PASS |
+
+CloudTrail shows `PutRolePermissionsBoundary` with `PutRolePolicy` (b) and `AttachRolePolicy` (c)
+in the same second, all without errors. The boundary denies those calls on a role without it, so
+CloudFormation must have set the boundary first.
