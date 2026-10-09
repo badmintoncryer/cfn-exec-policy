@@ -144,7 +144,10 @@ func BoundaryDocument(partition, account, boundary, policyName string) PolicyDoc
 			Condition: map[string]map[string][]string{"StringNotEquals": {"iam:PermissionsBoundary": {arn("policy", boundary)}}}},
 		{Sid: "DenyBoundaryRemoval", Effect: "Deny", Resource: "*",
 			Action: []string{"iam:DeleteRolePermissionsBoundary", "iam:DeleteUserPermissionsBoundary"}},
-		{Sid: "DenyPolicyEdits", Effect: "Deny", Resource: []string{arn("policy", boundary), arn("policy", policyName+"*")},
+		// policyName-? and -?? are the split parts (policyNames); a bare policyName* would
+		// also match the policies of a stack whose name starts with policyName (bench, 2026-10-09).
+		{Sid: "DenyPolicyEdits", Effect: "Deny", Resource: []string{arn("policy", boundary), arn("policy", policyName),
+			arn("policy", policyName+"-?"), arn("policy", policyName+"-??")},
 			Action: []string{"iam:CreatePolicyVersion", "iam:DeletePolicy", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion"}},
 		{Sid: "DenyUsers", Effect: "Deny", Resource: "*",
 			Action: []string{"iam:AddUserToGroup", "iam:AttachGroupPolicy", "iam:AttachUserPolicy", "iam:CreateAccessKey",

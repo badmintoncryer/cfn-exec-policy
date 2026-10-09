@@ -372,3 +372,17 @@ func TestGuessedTypes(t *testing.T) {
 		t.Errorf("guessed %v", guessed)
 	}
 }
+
+func TestBoundaryProtectsOnlyThisToolsPolicies(t *testing.T) {
+	b, _ := json.Marshal(BoundaryDocument("aws", "1", "p-boundary", "p"))
+	got := string(b)
+	for _, want := range []string{`"arn:aws:iam::1:policy/p"`, `"arn:aws:iam::1:policy/p-?"`, `"arn:aws:iam::1:policy/p-boundary"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+	// A stack named p-app creates policies named p-app-Policy-…; the boundary must not freeze them.
+	if strings.Contains(got, `policy/p*"`) {
+		t.Errorf("prefix wildcard on the policy name: %s", got)
+	}
+}
