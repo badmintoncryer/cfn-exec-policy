@@ -49,7 +49,7 @@ something, so the deploy fails fast instead of mid-rollout. Re-run
 | `generate [inputs]` | Print the policy document(s) | no |
 | `check [inputs]` | Exit 1 if the managed policy is missing actions your templates need — put it in CI before `cdk deploy`. It reads the policy by name; it does not verify the exec role has it attached | yes (read-only) |
 | `apply [inputs]` | Create or update the managed policy, print the `cdk bootstrap` command | yes |
-| `delete` | Delete the managed policy and its split parts. Stops if any of them is still attached. Without `--yes`, only prints what it would delete | yes |
+| `delete` | Delete the managed policy, its split parts and the `--strict` boundary. Stops if any of them is still attached. Without `--yes`, only prints what it would delete | yes |
 
 Inputs are `cdk.out` directories (default: `./cdk.out`, including nested
 stacks and Stages) or CloudFormation templates (JSON or YAML).
@@ -219,6 +219,20 @@ npx cfn-exec-policy delete --yes
 versions that each `apply` leaves behind, which IAM requires before it deletes
 a policy. If a part is still attached, it deletes nothing and prints the
 `cdk bootstrap` command above.
+
+After `apply --strict`, `delete` also removes `<policy-name>-boundary` (not a
+boundary you passed with `--boundary`). IAM won't delete it while roles carry
+it, so take it off them first, the execution role before the others, because
+the boundary stops the execution role from removing boundaries:
+
+1. The execution role: `cdk bootstrap` keeps the boundary when
+   `--custom-permissions-boundary` is left out, so clear the bootstrap stack's
+   `InputPermissionsBoundary` parameter (CloudFormation console: Update stack,
+   Use existing template), or delete the bootstrap stack.
+2. Your stacks' roles: remove `@aws-cdk/core:permissionsBoundary` from
+   `cdk.json` and redeploy (or destroy) each app.
+
+`delete` lists the roles that still carry it.
 
 ## Install
 

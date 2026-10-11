@@ -335,6 +335,17 @@ func TestDeletePolicy(t *testing.T) {
 	}
 }
 
+func TestBoundaryRemoval(t *testing.T) {
+	got := boundaryRemoval("p-boundary", []string{"role/App-FnRole-1", "role/cdk-hnb659fds-cfn-exec-role-1-us-east-1"})
+	exec, app := strings.Index(got, "cdk-hnb659fds-cfn-exec-role"), strings.Index(got, "App-FnRole-1")
+	if exec < 0 || app < 0 || exec > app || !strings.Contains(got, "InputPermissionsBoundary") || !strings.Contains(got, "@aws-cdk/core:permissionsBoundary") {
+		t.Errorf("exec role first, then the app roles:\n%s", got)
+	}
+	if got := boundaryRemoval("p-boundary", []string{"role/App-FnRole-1"}); strings.Contains(got, "InputPermissionsBoundary") {
+		t.Errorf("no exec role, yet:\n%s", got)
+	}
+}
+
 func TestStrictErrors(t *testing.T) {
 	tpls, err := LoadInputs([]string{"testdata/strict", "testdata/strict-bad.yaml"})
 	if err != nil {

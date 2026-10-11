@@ -201,7 +201,18 @@ func (c *awsClients) putPolicy(ctx context.Context, name string, doc PolicyDocum
 	return err
 }
 
-// attachedTo returns the roles, users and groups the managed policy name is attached to.
+// exists reports whether the managed policy name exists.
+func (c *awsClients) exists(ctx context.Context, name string) (bool, error) {
+	_, err := c.iam.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(c.policyArn(name))})
+	var nse *iamtypes.NoSuchEntityException
+	if errors.As(err, &nse) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
+// attachedTo returns the roles, users and groups the managed policy name is attached
+// to or is the permissions boundary of.
 func (c *awsClients) attachedTo(ctx context.Context, name string) ([]string, error) {
 	var out []string
 	p := iam.NewListEntitiesForPolicyPaginator(c.iam, &iam.ListEntitiesForPolicyInput{PolicyArn: aws.String(c.policyArn(name))})

@@ -43,7 +43,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 | `generate [入力]` | ポリシーのJSONを表示する | 不要 |
 | `check [入力]` | テンプレートに要る権限が管理ポリシーに足りなければ、終了コード1で終わる。`cdk deploy`の前にCIで実行する。ポリシーは名前で読むだけで、実行ロールに付いているかまでは確かめない | 要（読み取りのみ） |
 | `apply [入力]` | 管理ポリシーを作成または更新し、`cdk bootstrap`のコマンドを表示する | 要 |
-| `delete` | 管理ポリシーを、分割した分も含めて削除する。どれかがまだロールに付いていれば止まる。`--yes`を付けなければ、削除するポリシーを表示するだけ | 要 |
+| `delete` | 管理ポリシーを、分割した分と`--strict`のboundaryも含めて削除する。どれかがまだロールに付いていれば止まる。`--yes`を付けなければ、削除するポリシーを表示するだけ | 要 |
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
@@ -147,6 +147,13 @@ npx cfn-exec-policy delete --yes
 ```
 
 `delete`は、分割したポリシー（`cfn-exec-policy-2`、…）と、`apply`のたびに増える古いバージョンも消します。IAMは、古いバージョンが残っているポリシーを削除できないためです。どれかがまだロールに付いていれば、何も消さずに上の`cdk bootstrap`のコマンドを表示します。
+
+`apply --strict`を使っていた場合、`delete`は`<policy-name>-boundary`も消します（`--boundary`で渡した自前のboundaryは消しません）。IAMは、ロールに付いたままのboundaryを削除できません。そのため、先にロールから外します。boundaryは実行ロールがboundaryを外すことを禁じるので、実行ロールから先に外します。
+
+1. 実行ロール: `cdk bootstrap`は、`--custom-permissions-boundary`を省くと前のboundaryをそのまま残します。そのため、bootstrapのスタックのパラメータ`InputPermissionsBoundary`を空にします（CloudFormationのコンソールで「スタックの更新」→「既存のテンプレートを使用」）。bootstrapのスタックを消してもかまいません。
+2. スタックが作ったロール: `cdk.json`から`@aws-cdk/core:permissionsBoundary`を消して、各アプリをデプロイし直します（または削除します）。
+
+boundaryがまだ付いているロールは、`delete`が表示します。
 
 ## インストール
 
