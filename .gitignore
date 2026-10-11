@@ -14,3 +14,5 @@ bench/tags/*.log
 bench/nohandler/windows4*.log
 bench/nohandler/verify4*.log
 bench/passrole/*.log
+bench/strict/run.log
+bench/strict/migrate.log

@@ -47,7 +47,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`apply --prune`、`delete --yes`。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`。
 
 ## 実行に要る権限
 
@@ -83,7 +83,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 }
 ```
 
-`check`だけを実行するCIのロールなら、後ろの4つのIAMアクションは外せます。`delete`を実行するなら、`iam:ListEntitiesForPolicy`と`iam:DeletePolicy`を足します。`--policy-name`を変えた場合は、Resourceもその名前に合わせます。
+`check`だけを実行するCIのロールなら、後ろの4つのIAMアクションは外せます。`delete`を実行するなら、`iam:ListEntitiesForPolicy`と`iam:DeletePolicy`を足します。`--policy-name`を変えた場合は、Resourceもその名前に合わせます。`apply --strict`は`<policy-name>-boundary`も書き込みますが、これも同じResourceに含まれます。
 
 `apply`を実行できる人は、実行ロールにできることを決められます。つまり、どのデプロイで何ができるかを決められます。この権限は、デプロイの仕組みをすでに管理している人だけに渡してください。なお、`cdk bootstrap`自体もIAMロールを作る権限が要ります。そのため、最初の`apply`と`cdk bootstrap`は、たいてい管理者の認証情報で実行します。
 
@@ -102,7 +102,39 @@ CloudFormationは、リソース型ごとにスキーマを公開しています
 
 ## できること、できないこと
 
-既定のモードは、実行ロールにできることを「すべて」から「テンプレートで使うサービスだけ」に狭めます。ただし、**セキュリティの境界ではありません**。IAMロールを作れるロールは、管理者権限のロールも作れてしまうからです。これを塞ぐ仕組み（スタックが作るすべてのロールにpermissions boundaryを付ける）は、`--strict`として追加する予定です。詳しくは[docs/design.md](docs/design.md)を見てください。
+既定のモードは、実行ロールにできることを「すべて」から「テンプレートで使うサービスだけ」に狭めます。ただし、**セキュリティの境界ではありません**。IAMロールを作れるロールは、管理者権限のロールも作れてしまうからです。
+
+### `--strict`
+
+`--strict`は、IAMを通じて権限を広げる経路を塞ぎます。`apply --strict`は、permissions boundaryとして`<policy-name>-boundary`も書き込みます。表示する`cdk bootstrap`のコマンドには`--custom-permissions-boundary`が付き、このboundaryが実行ロールに付きます。boundaryは、次の操作を除いてすべてを許可します。
+
+- このboundaryのないロールを作ること。このboundaryのないロールにポリシーを付けたり追加したりすること、信頼ポリシーを変えること
+- permissions boundaryを外すこと
+- boundaryと`<policy-name>*`のポリシーを書き換えること
+- IAMユーザー、そのアクセスキーとパスワード、グループへの権限付与
+- `cdk-*`のロール（実行ロール自身を含む）を変えること
+
+スタックが作るロールには、すべてこのboundaryが要ります。アプリ全体に付けるには、`cdk.json`に次のように書きます。
+
+```json
+"context": { "@aws-cdk/core:permissionsBoundary": { "name": "cfn-exec-policy-boundary" } }
+```
+
+boundaryは実行ロールに付きます。実行ロールは、同じアカウントとリージョンでbootstrapしたすべてのアプリが共有するため、それらのアプリすべてにこの設定が要ります。
+
+`--strict`を付けると、ポリシーと検査も次のように変わります。
+
+- boundaryのないロール、IAMユーザー、グループへの権限付与がテンプレートにあると、デプロイの前にエラーにします。
+- `iam:CreateRole`は、boundaryを付ける場合だけ許可します。
+- `iam:PassRole`で渡せるロールを、CloudFormationがスタック名から名前を付けるロール（`<スタック名>-*`。25文字を超えるスタック名は先頭25文字）、`RoleName`を固定したロール、テンプレートに書かれたロールのARNに限ります。パラメータから`RoleName`を受け取る場合など、解決できないロールは警告を出し、渡せないままにします。`--pass-role-condition`も有効になります。
+- 権限が分かっていないリソースの型は、`<サービス>:*`で補わずにエラーにします。
+- スタック名が要るため、入力は`cdk.out`のディレクトリに限ります。テンプレートのファイルを渡すとエラーになります。
+
+`--boundary <名前またはARN>`を付けると、自分で用意したboundaryを使います。この場合、`apply`はboundaryを書き込みません。
+
+boundaryはIAM以外の操作をすべて許可します。そのため`--strict`を付けても、スタックが作ったロールは、そのロール自身のポリシーが許す範囲でデータを読んだり、リソースを消したりできます。また、boundaryの付いたロールは、boundaryのない既存のロールをサービスに渡せます。`iam:PassRole`には、boundaryを判定する条件キーがないためです。範囲を絞れるのは、実行ロール自身の`iam:PassRole`だけです。`check`はアクションだけを比べるため、`Resource`や`Condition`が広げられても気づきません。
+
+`--strict`を付ける前にデプロイしたロールには、次のデプロイでboundaryが付きます。同じデプロイでインラインポリシーや管理ポリシーを変えても、デプロイは通ります（実際のアカウントで確かめました）。詳しくは[docs/design.md](docs/design.md)を見てください。
 
 ## 使うのをやめるとき
 

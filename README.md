@@ -56,7 +56,8 @@ stacks and Stages) or CloudFormation templates (JSON or YAML).
 
 Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
-`--pass-role-condition` (see below), `apply --prune`, `delete --yes`.
+`--pass-role-condition` (see below), `--strict` and `--boundary` (see
+[`--strict`](#--strict)), `apply --prune`, `delete --yes`.
 
 ## Permissions to run it
 
@@ -96,7 +97,8 @@ CLI or CI credentials), not of the execution role.
 
 Drop the last four IAM actions for a `check`-only CI role, and add
 `iam:ListEntitiesForPolicy` and `iam:DeletePolicy` to run `delete`. If you change
-`--policy-name`, change the resource to match.
+`--policy-name`, change the resource to match. `apply --strict` writes
+`<policy-name>-boundary` too, which the same resource covers.
 
 `apply` lets its caller decide what the execution role can do, and therefore
 what any deploy can do. Give it only to the people who already administer
@@ -145,9 +147,61 @@ permissions, so updates, replacements, rollbacks and deletes all work.
 
 The default mode shrinks what the execution role can do from *everything* to
 *the services your templates use*. It is **not a security boundary**: a role
-that can create IAM roles can still create an administrator role. Closing that
-(a permissions boundary on every role the stack creates) is planned as
-`--strict`. See [docs/design.md](docs/design.md).
+that can create IAM roles can still create an administrator role.
+
+### `--strict`
+
+`--strict` closes the ways to gain permissions through IAM. `apply --strict`
+also writes a permissions boundary, `<policy-name>-boundary`, and the
+`cdk bootstrap` command it prints adds `--custom-permissions-boundary`, which
+puts the boundary on the execution role. The boundary allows everything
+except:
+
+- creating a role without this boundary, and attaching or adding policies to,
+  or changing the trust policy of, a role without it
+- removing a permissions boundary
+- editing the boundary or the `<policy-name>*` policies
+- IAM users, their access keys and passwords, and group grants
+- changing `cdk-*` roles, the execution role included
+
+Every role your stacks create must carry the boundary, so set it for the whole
+app in `cdk.json`:
+
+```json
+"context": { "@aws-cdk/core:permissionsBoundary": { "name": "cfn-exec-policy-boundary" } }
+```
+
+The boundary is on the execution role, which every app bootstrapped in that
+account and region shares, so every one of those apps needs this setting.
+
+`--strict` also changes the policy and the checks:
+
+- Roles without a boundary, IAM users and group grants in your templates are
+  an error before deploy.
+- `iam:CreateRole` is allowed only with the boundary.
+- `iam:PassRole` reaches only the roles CloudFormation names after your stacks
+  (`<stack-name>-*`; a stack name over 25 characters is cut to its first 25),
+  roles with a fixed `RoleName`, and role ARNs written in the templates. A
+  role it cannot resolve, such as a `RoleName` from a parameter, gets a warning
+  and cannot be passed. Implies `--pass-role-condition`.
+- A resource type with no known permissions is an error instead of
+  `<service>:*`.
+- Inputs must be `cdk.out` directories, because the stack names are needed. A
+  template file is an error.
+
+`--boundary <name or ARN>` uses your own boundary instead; `apply` then does
+not write one.
+
+What `--strict` does not stop: the boundary allows everything outside IAM, so
+a role your stack creates can still read or delete whatever its own policy
+allows. A role with the boundary can also pass an existing role that has no
+boundary to a service, because `iam:PassRole` has no condition key for
+boundaries; only the execution role's own `iam:PassRole` is narrowed. `check`
+compares actions only and does not notice a widened `Resource` or `Condition`.
+
+Roles deployed before you turn on `--strict` get the boundary on the next
+deploy, even when that deploy also changes their inline or managed policies
+(checked on a real account). See [docs/design.md](docs/design.md).
 
 ## Removing it
 

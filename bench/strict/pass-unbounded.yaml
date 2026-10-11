@@ -1,0 +1,9 @@
+# A Lambda function running as the pre-created role cfnxp-strict-unbounded.
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cfnxp-strict-unbounded
+      Code: {ZipFile: "exports.handler = async () => {};"}

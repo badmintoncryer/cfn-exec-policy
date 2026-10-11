@@ -1,0 +1,9 @@
+# Control for pass-unbounded: a role inside the stack prefix cfnxp-strict-app-*.
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cfnxp-strict-app-target
+      Code: {ZipFile: "exports.handler = async () => {};"}

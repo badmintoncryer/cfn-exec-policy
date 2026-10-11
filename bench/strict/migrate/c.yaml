@@ -1,0 +1,17 @@
+# c: phase 2 adds the boundary and attaches another managed policy.
+Parameters:
+  Phase: {Type: String, Default: "1", AllowedValues: ["1", "2"]}
+Conditions:
+  P2: !Equals [!Ref Phase, "2"]
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: sts:AssumeRole}]
+      PermissionsBoundary: !If [P2, !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/cfnxp-mig-boundary", !Ref AWS::NoValue]
+      ManagedPolicyArns: !If
+        - P2
+        - [!Sub "arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess", !Sub "arn:${AWS::Partition}:iam::aws:policy/job-function/ViewOnlyAccess"]
+        - [!Sub "arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess"]
