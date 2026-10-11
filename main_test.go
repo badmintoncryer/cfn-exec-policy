@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	cfntypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 )
 
 func generate(t *testing.T, paths ...string) ([]string, []string) {
@@ -274,6 +276,62 @@ func TestPassRoleConditionUnmappedTypeStaysBare(t *testing.T) {
 		if len(d.Statement) != 1 {
 			t.Fatalf("the bare grant covers the conditioned one; no second statement: %+v", d)
 		}
+	}
+}
+
+// fakeIAM holds the version IDs of one policy and, like IAM, refuses to delete it
+// while non-default versions remain.
+type fakeIAM struct {
+	iamAPI
+	versions []string // versions[0] is the default
+	roles    []string
+	deleted  bool
+}
+
+func (f *fakeIAM) ListPolicyVersions(_ context.Context, _ *iam.ListPolicyVersionsInput, _ ...func(*iam.Options)) (*iam.ListPolicyVersionsOutput, error) {
+	var out []iamtypes.PolicyVersion
+	for i, v := range f.versions {
+		out = append(out, iamtypes.PolicyVersion{VersionId: aws.String(v), IsDefaultVersion: i == 0})
+	}
+	return &iam.ListPolicyVersionsOutput{Versions: out}, nil
+}
+
+func (f *fakeIAM) DeletePolicyVersion(_ context.Context, in *iam.DeletePolicyVersionInput, _ ...func(*iam.Options)) (*iam.DeletePolicyVersionOutput, error) {
+	for i, v := range f.versions {
+		if i > 0 && v == aws.ToString(in.VersionId) {
+			f.versions = append(f.versions[:i], f.versions[i+1:]...)
+			return &iam.DeletePolicyVersionOutput{}, nil
+		}
+	}
+	return nil, errors.New("no such non-default version")
+}
+
+func (f *fakeIAM) DeletePolicy(context.Context, *iam.DeletePolicyInput, ...func(*iam.Options)) (*iam.DeletePolicyOutput, error) {
+	if len(f.versions) > 1 || len(f.roles) > 0 {
+		return nil, &iamtypes.DeleteConflictException{}
+	}
+	f.deleted = true
+	return &iam.DeletePolicyOutput{}, nil
+}
+
+func (f *fakeIAM) ListEntitiesForPolicy(context.Context, *iam.ListEntitiesForPolicyInput, ...func(*iam.Options)) (*iam.ListEntitiesForPolicyOutput, error) {
+	var out []iamtypes.PolicyRole
+	for _, r := range f.roles {
+		out = append(out, iamtypes.PolicyRole{RoleName: aws.String(r)})
+	}
+	return &iam.ListEntitiesForPolicyOutput{PolicyRoles: out}, nil
+}
+
+func TestDeletePolicy(t *testing.T) {
+	ctx := context.Background()
+	f := &fakeIAM{versions: []string{"v3", "v1", "v2"}, roles: []string{"exec"}}
+	c := &awsClients{iam: f, part: "aws", account: "123456789012"}
+	if got, _ := c.attachedTo(ctx, "p"); strings.Join(got, ",") != "role/exec" {
+		t.Errorf("attachedTo = %v", got)
+	}
+	f.roles = nil
+	if err := c.deletePolicy(ctx, "p"); err != nil || !f.deleted {
+		t.Fatalf("deletePolicy: err=%v deleted=%v versions=%v", err, f.deleted, f.versions)
 	}
 }
 

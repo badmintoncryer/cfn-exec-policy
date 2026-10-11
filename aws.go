@@ -25,10 +25,22 @@ type cfnAPI interface {
 	ListStackResources(context.Context, *cloudformation.ListStackResourcesInput, ...func(*cloudformation.Options)) (*cloudformation.ListStackResourcesOutput, error)
 }
 
+// iamAPI is the part of the IAM client used here (a fake in tests).
+type iamAPI interface {
+	GetPolicy(context.Context, *iam.GetPolicyInput, ...func(*iam.Options)) (*iam.GetPolicyOutput, error)
+	GetPolicyVersion(context.Context, *iam.GetPolicyVersionInput, ...func(*iam.Options)) (*iam.GetPolicyVersionOutput, error)
+	CreatePolicy(context.Context, *iam.CreatePolicyInput, ...func(*iam.Options)) (*iam.CreatePolicyOutput, error)
+	CreatePolicyVersion(context.Context, *iam.CreatePolicyVersionInput, ...func(*iam.Options)) (*iam.CreatePolicyVersionOutput, error)
+	ListPolicyVersions(context.Context, *iam.ListPolicyVersionsInput, ...func(*iam.Options)) (*iam.ListPolicyVersionsOutput, error)
+	DeletePolicyVersion(context.Context, *iam.DeletePolicyVersionInput, ...func(*iam.Options)) (*iam.DeletePolicyVersionOutput, error)
+	DeletePolicy(context.Context, *iam.DeletePolicyInput, ...func(*iam.Options)) (*iam.DeletePolicyOutput, error)
+	ListEntitiesForPolicy(context.Context, *iam.ListEntitiesForPolicyInput, ...func(*iam.Options)) (*iam.ListEntitiesForPolicyOutput, error)
+}
+
 type awsClients struct {
 	cfg     aws.Config
 	cfn     cfnAPI
-	iam     *iam.Client
+	iam     iamAPI
 	account string
 	part    string
 }
@@ -186,5 +198,47 @@ func (c *awsClients) putPolicy(ctx context.Context, name string, doc PolicyDocum
 	_, err = c.iam.CreatePolicyVersion(ctx, &iam.CreatePolicyVersionInput{
 		PolicyArn: aws.String(policyArn), PolicyDocument: aws.String(string(b)), SetAsDefault: true,
 	})
+	return err
+}
+
+// attachedTo returns the roles, users and groups the managed policy name is attached to.
+func (c *awsClients) attachedTo(ctx context.Context, name string) ([]string, error) {
+	var out []string
+	p := iam.NewListEntitiesForPolicyPaginator(c.iam, &iam.ListEntitiesForPolicyInput{PolicyArn: aws.String(c.policyArn(name))})
+	for p.HasMorePages() {
+		page, err := p.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range page.PolicyRoles {
+			out = append(out, "role/"+aws.ToString(r.RoleName))
+		}
+		for _, u := range page.PolicyUsers {
+			out = append(out, "user/"+aws.ToString(u.UserName))
+		}
+		for _, g := range page.PolicyGroups {
+			out = append(out, "group/"+aws.ToString(g.GroupName))
+		}
+	}
+	return out, nil
+}
+
+// deletePolicy deletes the managed policy name. IAM refuses to delete a policy that
+// still has non-default versions, so those go first.
+func (c *awsClients) deletePolicy(ctx context.Context, name string) error {
+	policyArn := aws.String(c.policyArn(name))
+	vs, err := c.iam.ListPolicyVersions(ctx, &iam.ListPolicyVersionsInput{PolicyArn: policyArn})
+	if err != nil {
+		return err
+	}
+	for _, v := range vs.Versions {
+		if v.IsDefaultVersion {
+			continue
+		}
+		if _, err := c.iam.DeletePolicyVersion(ctx, &iam.DeletePolicyVersionInput{PolicyArn: policyArn, VersionId: v.VersionId}); err != nil {
+			return err
+		}
+	}
+	_, err = c.iam.DeletePolicy(ctx, &iam.DeletePolicyInput{PolicyArn: policyArn})
 	return err
 }
