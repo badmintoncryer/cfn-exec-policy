@@ -173,9 +173,7 @@ var handWritten = map[string][]string{
 	"AWS::AppSync::GraphQLSchema":              {"appsync:GetSchemaCreationStatus", "appsync:StartSchemaCreation"},
 	"AWS::CloudFormation::WaitConditionHandle": {},
 	"AWS::CodeBuild::Project":                  {"codebuild:CreateProject", "codebuild:DeleteProject", "codebuild:UpdateProject", "iam:PassRole"},
-	"AWS::CodeBuild::ReportGroup": {"codebuild:BatchGetReportGroups", "codebuild:CreateReportGroup",
-		"codebuild:DeleteReportGroup", "codebuild:UpdateReportGroup"},
-	"AWS::IAM::UserToGroupAddition": {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
+	"AWS::IAM::UserToGroupAddition":            {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
 	// The plan creates the scaling policies and alarms with the caller's credentials (the
 	// autoscaling/cloudwatch actions, from the verify pass's errors and CloudTrail AccessDenied). Measured with an EC2
 	// Auto Scaling group only; other namespaces would also need application-autoscaling.
@@ -205,10 +203,8 @@ var handWritten = map[string][]string{
 		"medialive:DeleteTags", "medialive:DescribeInput", "medialive:UpdateInput"},
 	"AWS::MediaLive::InputSecurityGroup": {"medialive:CreateInputSecurityGroup", "medialive:CreateTags", "medialive:DeleteInputSecurityGroup", "medialive:DeleteTags"},
 	"AWS::CloudFormation::WaitCondition": {},
-	"AWS::EC2::ClientVpnAuthorizationRule": {"ec2:AuthorizeClientVpnIngress", "ec2:DescribeClientVpnAuthorizationRules",
-		"ec2:RevokeClientVpnIngress"},
-	"AWS::EC2::ClientVpnEndpoint":  {"ec2:CreateClientVpnEndpoint", "ec2:CreateTags", "ec2:DeleteClientVpnEndpoint", "ec2:DeleteTags", "ec2:DescribeClientVpnEndpoints"},
-	"AWS::Route53::RecordSetGroup": {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
+	"AWS::EC2::ClientVpnEndpoint":        {"ec2:CreateClientVpnEndpoint", "ec2:CreateTags", "ec2:DeleteClientVpnEndpoint", "ec2:DeleteTags", "ec2:DescribeClientVpnEndpoints"},
+	"AWS::Route53::RecordSetGroup":       {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
 	// Hourly-billed types (#9), measured 2026-10-08. Tag actions not exercised on bench
 	// come from the IAM docs, as above.
 	"AWS::DAX::Cluster": {"dax:CreateCluster", "dax:DeleteCluster", "dax:DescribeClusters", "dax:ListTags",
@@ -221,9 +217,6 @@ var handWritten = map[string][]string{
 		"ec2:DescribeClientVpnTargetNetworks", "ec2:DisassociateClientVpnTargetNetwork"},
 	"AWS::EMR::Cluster": {"elasticmapreduce:AddTags", "elasticmapreduce:DescribeCluster", "elasticmapreduce:ModifyCluster",
 		"elasticmapreduce:RemoveTags", "elasticmapreduce:RunJobFlow", "elasticmapreduce:TerminateJobFlows", "iam:PassRole"},
-	// Delete scales the task fleet to zero; EMR cannot remove a fleet from a running cluster.
-	"AWS::EMR::InstanceFleetConfig": {"elasticmapreduce:AddInstanceFleet", "elasticmapreduce:ListInstanceFleets",
-		"elasticmapreduce:ModifyInstanceFleet"},
 	"AWS::Elasticsearch::Domain": {"es:AddTags", "es:CreateElasticsearchDomain", "es:DeleteElasticsearchDomain",
 		"es:DescribeElasticsearchDomain", "es:ListTags", "es:RemoveTags", "iam:PassRole"},
 	"AWS::FSx::FileSystem": {"fsx:CreateFileSystem", "fsx:DeleteFileSystem", "fsx:DescribeFileSystems",
