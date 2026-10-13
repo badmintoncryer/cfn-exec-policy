@@ -237,7 +237,9 @@
    "bedrock-agentcore:DeleteWorkloadIdentity",
    "iam:CreateServiceLinkedRole",
    "kms:CreateGrant",
+   "kms:Decrypt",
    "kms:DescribeKey",
+   "kms:GenerateDataKey",
    "kms:GenerateDataKeyWithoutPlaintext",
    "kms:ReEncryptFrom",
    "kms:ReEncryptTo"
@@ -774,6 +776,18 @@
    "appfabric:TagResource",
    "appfabric:UntagResource",
    "appfabric:UpdateAppAuthorization"
+  ],
+  "AWS::AppFabric::IngestionDestination": [
+   "appfabric:CreateIngestionDestination",
+   "appfabric:DeleteIngestionDestination",
+   "appfabric:GetIngestionDestination",
+   "appfabric:ListTagsForResource",
+   "appfabric:TagResource",
+   "appfabric:UntagResource",
+   "appfabric:UpdateIngestionDestination",
+   "firehose:DescribeDeliveryStream",
+   "firehose:TagDeliveryStream",
+   "s3:GetBucketLocation"
   ],
   "AWS::AppFlow::Connector": [
    "appflow:DescribeConnector",
@@ -2090,6 +2104,18 @@
    "kms:ReEncryptFrom",
    "kms:ReEncryptTo",
    "kms:RetireGrant"
+  ],
+  "AWS::BedrockAgentCore::ConsentPortal": [
+   "bedrock-agentcore:CreateConsentPortal",
+   "bedrock-agentcore:DeleteConsentPortal",
+   "bedrock-agentcore:GetConsentPortal",
+   "bedrock-agentcore:GetGateway",
+   "bedrock-agentcore:GetOauth2CredentialProvider",
+   "bedrock-agentcore:ListTagsForResource",
+   "bedrock-agentcore:TagResource",
+   "bedrock-agentcore:UntagResource",
+   "bedrock-agentcore:UpdateConsentPortal",
+   "iam:PassRole"
   ],
   "AWS::BedrockAgentCore::Dataset": [
    "bedrock-agentcore:CreateDataset",
@@ -3439,6 +3465,16 @@
    "cloudwatch:TagResource",
    "cloudwatch:UntagResource"
   ],
+  "AWS::CloudWatch::Integration": [
+   "cloudwatch:CreateIntegration",
+   "cloudwatch:DeleteIntegration",
+   "cloudwatch:GetIntegration",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource",
+   "cloudwatch:UpdateIntegration",
+   "iam:PassRole"
+  ],
   "AWS::CloudWatch::LogAlarm": [
    "cloudwatch:DeleteAlarms",
    "cloudwatch:DescribeAlarms",
@@ -3467,7 +3503,8 @@
   "AWS::CloudWatch::OTelEnrichment": [
    "cloudwatch:GetOTelEnrichment",
    "cloudwatch:StartOTelEnrichment",
-   "cloudwatch:StopOTelEnrichment"
+   "cloudwatch:StopOTelEnrichment",
+   "cloudwatch:UpdateOTelEnrichment"
   ],
   "AWS::CloudWatch::ResourceMetricsConfiguration": [
    "cloudwatch:CreateResourceMetricsConfiguration",
@@ -3527,6 +3564,12 @@
    "codebuild:DeleteFleet",
    "codebuild:UpdateFleet",
    "iam:PassRole"
+  ],
+  "AWS::CodeBuild::ReportGroup": [
+   "codebuild:BatchGetReportGroups",
+   "codebuild:CreateReportGroup",
+   "codebuild:DeleteReportGroup",
+   "codebuild:UpdateReportGroup"
   ],
   "AWS::CodeBuild::SourceCredential": [
    "codebuild:DeleteSourceCredentials",
@@ -5592,6 +5635,7 @@
    "aidevops:TagResource",
    "aidevops:UntagResource",
    "aidevops:UpdateAgentSpace",
+   "aidevops:UpdateOperatorAppIdpConfig",
    "iam:CreateServiceLinkedRole",
    "iam:PassRole",
    "kms:CreateGrant",
@@ -5909,6 +5953,7 @@
    "dynamodb:DeleteTableReplica",
    "dynamodb:Describe*",
    "dynamodb:DisableKinesisStreamingDestination",
+   "dynamodb:DisassociateTableReplica",
    "dynamodb:EnableKinesisStreamingDestination",
    "dynamodb:GetItem",
    "dynamodb:GetResourcePolicy",
@@ -6035,6 +6080,11 @@
    "ec2:DeleteTags",
    "ec2:DescribeCarrierGateways",
    "ec2:DescribeTags"
+  ],
+  "AWS::EC2::ClientVpnAuthorizationRule": [
+   "ec2:AuthorizeClientVpnIngress",
+   "ec2:DescribeClientVpnAuthorizationRules",
+   "ec2:RevokeClientVpnIngress"
   ],
   "AWS::EC2::ClientVpnRoute": [
    "ec2:CreateClientVpnRoute",
@@ -6414,6 +6464,8 @@
    "ec2:DeleteTags",
    "ec2:Describe*",
    "ec2:GetManagedPrefixListEntries",
+   "ec2:GetTransitGatewayPolicyTableAssociations",
+   "ec2:GetTransitGatewayPolicyTableEntries",
    "ec2:GetTransitGatewayRouteTablePropagations",
    "ec2:SearchTransitGatewayRoutes",
    "ec2:StartNetworkInsightsAnalysis",
@@ -6897,6 +6949,7 @@
    "ec2:DeleteTags",
    "ec2:DeleteVpcPeeringConnection",
    "ec2:DescribeVpcPeeringConnections",
+   "ec2:ModifyVpcPeeringConnectionOptions",
    "sts:AssumeRole"
   ],
   "AWS::EC2::VPNConcentrator": [
@@ -7435,6 +7488,11 @@
    "eks:UpdatePodIdentityAssociation",
    "iam:GetRole",
    "iam:PassRole"
+  ],
+  "AWS::EMR::InstanceFleetConfig": [
+   "elasticmapreduce:AddInstanceFleet",
+   "elasticmapreduce:ListInstanceFleets",
+   "elasticmapreduce:ModifyInstanceFleet"
   ],
   "AWS::EMR::InstanceGroupConfig": [
    "elasticmapreduce:AddInstanceGroups",
@@ -10195,17 +10253,6 @@
    "iotdeviceadvisor:UntagResource",
    "iotdeviceadvisor:UpdateSuiteDefinition"
   ],
-  "AWS::IoTEvents::AlarmModel": [
-   "iam:PassRole",
-   "iotevents:CreateAlarmModel",
-   "iotevents:DeleteAlarmModel",
-   "iotevents:DescribeAlarmModel",
-   "iotevents:ListTagsForResource",
-   "iotevents:TagResource",
-   "iotevents:UntagResource",
-   "iotevents:UpdateAlarmModel",
-   "iotevents:UpdateInputRouting"
-  ],
   "AWS::IoTEvents::DetectorModel": [
    "iam:PassRole",
    "iotevents:CreateDetectorModel",
@@ -11283,6 +11330,15 @@
    "license-manager:TagResource",
    "license-manager:UntagResource",
    "license-manager:UpdateLicenseAssetRuleset"
+  ],
+  "AWS::LicenseManager::LicenseConfiguration": [
+   "license-manager:CreateLicenseConfiguration",
+   "license-manager:DeleteLicenseConfiguration",
+   "license-manager:GetLicenseConfiguration",
+   "license-manager:ListTagsForResource",
+   "license-manager:TagResource",
+   "license-manager:UntagResource",
+   "license-manager:UpdateLicenseConfiguration"
   ],
   "AWS::LicenseManager::ReportGenerator": [
    "license-manager:CreateLicenseManagerReportGenerator",
@@ -13925,6 +13981,7 @@
    "ec2:DescribeImages",
    "ec2:DescribeInstanceTypeOfferings",
    "ec2:DescribeInstanceTypes",
+   "ec2:DescribeKeyPairs",
    "ec2:DescribeLaunchTemplateVersions",
    "ec2:DescribeLaunchTemplates",
    "ec2:DescribeSecurityGroups",
@@ -14143,6 +14200,11 @@
    "pipes:UpdatePipe",
    "s3:GetBucketPolicy",
    "s3:PutBucketPolicy"
+  ],
+  "AWS::Polly::Lexicon": [
+   "polly:DeleteLexicon",
+   "polly:GetLexicon",
+   "polly:PutLexicon"
   ],
   "AWS::PricingPlanManager::Subscription": [
    "cloudwatch:GetMetricData",
@@ -14868,6 +14930,27 @@
    "rds:DescribeDBSubnetGroups",
    "rds:ListTagsForResource",
    "rds:ModifyDBSubnetGroup",
+   "rds:RemoveTagsFromResource"
+  ],
+  "AWS::RDS::Deployment": [
+   "iam:PassRole",
+   "rds:AddTagsToResource",
+   "rds:CreateBlueGreenDeployment",
+   "rds:CreateDBCluster",
+   "rds:CreateDBClusterEndpoint",
+   "rds:CreateDBInstance",
+   "rds:CreateDBInstanceReadReplica",
+   "rds:CreateGlobalCluster",
+   "rds:DeleteBlueGreenDeployment",
+   "rds:DeleteDBCluster",
+   "rds:DeleteDBClusterEndpoint",
+   "rds:DeleteDBInstance",
+   "rds:DeleteGlobalCluster",
+   "rds:DescribeBlueGreenDeployments",
+   "rds:ListTagsForResource",
+   "rds:PromoteReadReplica",
+   "rds:PromoteReadReplicaDBCluster",
+   "rds:RemoveFromGlobalCluster",
    "rds:RemoveTagsFromResource"
   ],
   "AWS::RDS::EventSubscription": [
@@ -16745,11 +16828,14 @@
    "ses:CreateTenantResourceAssociation",
    "ses:DeleteTenant",
    "ses:DeleteTenantResourceAssociation",
+   "ses:GetReputationEntity",
    "ses:GetTenant",
    "ses:ListTagsForResource",
    "ses:ListTenantResources",
+   "ses:PutTenantSuppressionAttributes",
    "ses:TagResource",
-   "ses:UntagResource"
+   "ses:UntagResource",
+   "ses:UpdateReputationEntityPolicy"
   ],
   "AWS::SES::VdmAttributes": [
    "ses:GetAccount",
@@ -17868,6 +17954,22 @@
    "securityagent:DeleteArtifact",
    "securityagent:GetArtifact"
   ],
+  "AWS::SecurityAgent::Integration": [
+   "kms:CreateGrant",
+   "kms:Decrypt",
+   "kms:DescribeKey",
+   "kms:Encrypt",
+   "kms:GenerateDataKey",
+   "kms:GenerateDataKeyWithoutPlaintext",
+   "kms:ReEncryptFrom",
+   "kms:ReEncryptTo",
+   "securityagent:CreateIntegration",
+   "securityagent:DeleteIntegration",
+   "securityagent:GetIntegration",
+   "securityagent:ListTagsForResource",
+   "securityagent:TagResource",
+   "securityagent:UntagResource"
+  ],
   "AWS::SecurityAgent::Pentest": [
    "kms:Decrypt",
    "securityagent:BatchDeletePentests",
@@ -18192,8 +18294,13 @@
   "AWS::ServiceCatalog::CloudFormationProvisionedProduct": [
    "cloudformation:CreateStack",
    "cloudformation:DeleteStack",
+   "cloudformation:DescribeStacks",
    "cloudformation:ListStacks",
    "cloudformation:UpdateStack",
+   "servicecatalog:DescribeProduct",
+   "servicecatalog:ListTagsForResource",
+   "servicecatalog:TagResource",
+   "servicecatalog:UntagResource",
    "servicecatalog:describeProvisionedProduct",
    "servicecatalog:describeRecord",
    "servicecatalog:provisionProduct",
@@ -19934,6 +20041,7 @@
   "AWS::Pinpoint": "mobiletargeting",
   "AWS::PinpointEmail": "ses",
   "AWS::Pipes": "pipes",
+  "AWS::Polly": "polly",
   "AWS::PricingPlanManager": "pricingplanmanager",
   "AWS::Proton": "proton",
   "AWS::QBusiness": "qbusiness",
