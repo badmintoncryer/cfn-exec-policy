@@ -297,15 +297,18 @@ func runDelete(args []string) error {
 			fmt.Fprintf(os.Stderr, "%s is the permissions boundary of %s\n", boundary, strings.Join(bounded, ", "))
 		}
 	}
-	if attached || len(bounded) > 0 {
+	if attached {
 		// Detaching it here would leave the bootstrap stack pointing at a deleted
 		// policy, so let CloudFormation do it.
 		fmt.Fprintf(os.Stderr, "\nPoint the execution role back at AdministratorAccess (or delete the bootstrap stack) first:\n\n")
 		fmt.Printf("cdk bootstrap aws://%s/%s --cloudformation-execution-policies arn:%s:iam::aws:policy/AdministratorAccess\n",
 			clients.account, clients.cfg.Region, clients.part)
-		if len(bounded) > 0 {
-			fmt.Fprint(os.Stderr, boundaryRemoval(boundary, bounded))
-		}
+	}
+	// Not for the boundary alone: re-bootstrapping doesn't take it off the exec role.
+	if len(bounded) > 0 {
+		fmt.Fprint(os.Stderr, boundaryRemoval(boundary, bounded))
+	}
+	if attached || len(bounded) > 0 {
 		os.Exit(1)
 	}
 	if hasBoundary {
@@ -344,8 +347,9 @@ func boundaryRemoval(boundary string, roles []string) string {
 	fmt.Fprintf(&b, "\nIAM won't delete %s while roles carry it. Remove it from them, in this order:\n", boundary)
 	if len(exec) > 0 {
 		fmt.Fprintf(&b, "  - %s: `cdk bootstrap` keeps the boundary when --custom-permissions-boundary is left out,\n"+
-			"    so clear the InputPermissionsBoundary parameter of the bootstrap stack (CloudFormation console:\n"+
-			"    Update stack, Use existing template), or delete the bootstrap stack.\n", strings.Join(exec, ", "))
+			"    even though it prints \"Removing existing permissions boundary\". Clear the\n"+
+			"    InputPermissionsBoundary parameter of the bootstrap stack instead (CloudFormation\n"+
+			"    console: Update stack, Use existing template), or delete the bootstrap stack.\n", strings.Join(exec, ", "))
 	}
 	if len(others) > 0 {
 		fmt.Fprintf(&b, "  - %s: remove \"@aws-cdk/core:permissionsBoundary\" from cdk.json and redeploy\n"+
