@@ -1,1 +1,1 @@
-{"version":"36.0.0","artifacts":{"StageStack":{"type":"aws:cloudformation:stack","properties":{"templateFile":"StageStack.template.json","stackName":"Stage-StageStack"}}}}
+{"version":"36.0.0","artifacts":{"StageStack":{"type":"aws:cloudformation:stack","properties":{"templateFile":"StageStack.template.json","stackName":"Stage-StageStack","cloudFormationExecutionRoleArn":"arn:${AWS::Partition}:iam::123456789012:role/cdk-stg-cfn-exec-role-123456789012-us-east-1"}}}}

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"slices"
 	"sort"
 	"strings"
 
@@ -23,6 +25,7 @@ import (
 type cfnAPI interface {
 	GetTemplate(context.Context, *cloudformation.GetTemplateInput, ...func(*cloudformation.Options)) (*cloudformation.GetTemplateOutput, error)
 	ListStackResources(context.Context, *cloudformation.ListStackResourcesInput, ...func(*cloudformation.Options)) (*cloudformation.ListStackResourcesOutput, error)
+	DescribeStackResources(context.Context, *cloudformation.DescribeStackResourcesInput, ...func(*cloudformation.Options)) (*cloudformation.DescribeStackResourcesOutput, error)
 }
 
 // iamAPI is the part of the IAM client used here (a fake in tests).
@@ -252,4 +255,81 @@ func (c *awsClients) deletePolicy(ctx context.Context, name string) error {
 	}
 	_, err = c.iam.DeletePolicy(ctx, &iam.DeletePolicyInput{PolicyArn: policyArn})
 	return err
+}
+
+const defaultQualifier = "hnb659fds"
+
+// execRoles returns the names of the exec roles the cloud assembly deploys with, in
+// the order first seen. Plain template files name none.
+func execRoles(tpls []*Template, c *awsClients) []string {
+	var out []string
+	for _, t := range tpls {
+		_, name, ok := strings.Cut(t.ExecRole, ":role/")
+		if !ok {
+			continue
+		}
+		// Environment-agnostic stacks leave these for the CLI to fill in.
+		name = strings.NewReplacer("${AWS::AccountId}", c.account, "${AWS::Region}", c.cfg.Region).Replace(name)
+		if !slices.Contains(out, name) {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// qualifier returns the bootstrap qualifier in a default-named exec role
+// (cdk-<qualifier>-cfn-exec-role-<account>-<region>), or "" for any other name.
+func qualifier(role string) string {
+	rest, ok := strings.CutPrefix(role, "cdk-")
+	if !ok {
+		return ""
+	}
+	q, _, ok := strings.Cut(rest, "-cfn-exec-role-")
+	if !ok {
+		return ""
+	}
+	return q
+}
+
+// bootstrapFlags returns the --qualifier and --toolkit-stack-name that make
+// `cdk bootstrap` update the stack owning role, leaving out CDK's defaults, so a
+// copied command doesn't rewrite the default CDKToolkit instead.
+func (c *awsClients) bootstrapFlags(ctx context.Context, role string) string {
+	var flags string
+	q := qualifier(role)
+	if q != "" && q != defaultQualifier {
+		flags += " --qualifier " + q
+	}
+	res, err := c.cfn.DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{PhysicalResourceId: aws.String(role)})
+	if err != nil && !strings.Contains(err.Error(), "does not exist") {
+		fmt.Fprintf(os.Stderr, "warning: can't find the bootstrap stack owning %s (%v); check --toolkit-stack-name before running this\n", role, err)
+		return flags
+	}
+	if err != nil || len(res.StackResources) == 0 {
+		// Not bootstrapped yet. Bootstrapping a new qualifier into the default
+		// CDKToolkit would take that stack away from the qualifier it has now.
+		if flags != "" {
+			flags += " --toolkit-stack-name CDKToolkit-" + q
+		}
+		return flags
+	}
+	if s := aws.ToString(res.StackResources[0].StackName); s != "CDKToolkit" {
+		flags += " --toolkit-stack-name " + s
+	}
+	return flags
+}
+
+// printBootstrap prints one `cdk bootstrap` command per exec role (one without
+// environment flags when no role is known), each ending in opts.
+func (c *awsClients) printBootstrap(ctx context.Context, roles []string, opts string) {
+	if len(roles) == 0 {
+		roles = []string{""}
+	}
+	for _, r := range roles {
+		var flags string
+		if r != "" {
+			flags = c.bootstrapFlags(ctx, r)
+		}
+		fmt.Printf("cdk bootstrap aws://%s/%s%s%s\n", c.account, c.cfg.Region, flags, opts)
+	}
 }

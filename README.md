@@ -28,6 +28,9 @@ npx cfn-exec-policy apply        # creates/updates the managed policy "cfn-exec-
 
 Run the printed `cdk bootstrap` command once, and every deploy in that
 environment runs with the generated policy instead of administrator access.
+If your app uses a custom bootstrap qualifier, the command also has the
+`--qualifier` and `--toolkit-stack-name` of that bootstrap (read from
+`cdk.out`), so it doesn't rewrite the default `CDKToolkit` stack.
 
 When your templates change, update the policy before you deploy:
 
@@ -67,8 +70,8 @@ CLI or CI credentials), not of the execution role.
 | Command | Actions |
 |---|---|
 | `check`, `apply` | `cloudformation:GetTemplate`, `cloudformation:ListStackResources` (deployed templates and nested stacks), `iam:GetPolicy`, `iam:GetPolicyVersion` |
-| `apply` only | `iam:CreatePolicy`, `iam:CreatePolicyVersion`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion` (deletes the oldest non-default version when the policy already has 5) |
-| `delete` | `iam:GetPolicy`, `iam:GetPolicyVersion`, `iam:ListEntitiesForPolicy`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion`, `iam:DeletePolicy` |
+| `apply` only | `cloudformation:DescribeStackResources` (finds the bootstrap stack for the printed command), `iam:CreatePolicy`, `iam:CreatePolicyVersion`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion` (deletes the oldest non-default version when the policy already has 5) |
+| `delete` | `cloudformation:DescribeStackResources`, `iam:GetPolicy`, `iam:GetPolicyVersion`, `iam:ListEntitiesForPolicy`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion`, `iam:DeletePolicy` |
 
 `sts:GetCallerIdentity` is also called, but it needs no permission.
 `generate` and `--refresh-schemas` need no AWS permissions.
@@ -79,7 +82,7 @@ CLI or CI credentials), not of the execution role.
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": ["cloudformation:GetTemplate", "cloudformation:ListStackResources"],
+      "Action": ["cloudformation:GetTemplate", "cloudformation:ListStackResources", "cloudformation:DescribeStackResources"],
       "Resource": "arn:aws:cloudformation:*:<account>:stack/*"
     },
     {
