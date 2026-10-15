@@ -1120,6 +1120,11 @@
    "appsync:UpdateGraphqlApi",
    "iam:PassRole"
   ],
+  "AWS::AppSync::GraphQLSchema": [
+   "appsync:GetSchemaCreationStatus",
+   "appsync:StartSchemaCreation",
+   "s3:GetObject"
+  ],
   "AWS::AppSync::Resolver": [
    "appsync:CreateResolver",
    "appsync:DeleteResolver",
@@ -2496,6 +2501,14 @@
    "braket:UntagResource",
    "braket:UpdateSpendingLimit"
   ],
+  "AWS::Budgets::Budget": [
+   "billing:GetBillingViewData",
+   "budgets:ListTagsForResource",
+   "budgets:ModifyBudget",
+   "budgets:TagResource",
+   "budgets:UntagResource",
+   "budgets:ViewBudget"
+  ],
   "AWS::Budgets::BudgetsAction": [
    "budgets:CreateBudgetAction",
    "budgets:DeleteBudgetAction",
@@ -3219,6 +3232,12 @@
    "cloudfront:VerifyDnsConfiguration",
    "wafv2:GetWebACL"
   ],
+  "AWS::CloudFront::FieldLevelEncryptionConfig": [
+   "cloudfront:CreateFieldLevelEncryptionConfig",
+   "cloudfront:DeleteFieldLevelEncryptionConfig",
+   "cloudfront:GetFieldLevelEncryption",
+   "cloudfront:UpdateFieldLevelEncryptionConfig"
+  ],
   "AWS::CloudFront::FieldLevelEncryptionProfile": [
    "cloudfront:CreateFieldLevelEncryptionProfile",
    "cloudfront:DeleteFieldLevelEncryptionProfile",
@@ -3435,11 +3454,6 @@
    "cloudwatch:PutAlarmMuteRule",
    "cloudwatch:TagResource",
    "cloudwatch:UntagResource"
-  ],
-  "AWS::CloudWatch::AnomalyDetector": [
-   "cloudwatch:DeleteAnomalyDetector",
-   "cloudwatch:DescribeAnomalyDetectors",
-   "cloudwatch:PutAnomalyDetector"
   ],
   "AWS::CloudWatch::CompositeAlarm": [
    "cloudwatch:DeleteAlarms",
@@ -4771,6 +4785,16 @@
    "profile:UntagResource",
    "profile:UpdateRecommender"
   ],
+  "AWS::CustomerProfiles::RecommenderFilter": [
+   "kms:Decrypt",
+   "kms:GenerateDataKey",
+   "profile:CreateRecommenderFilter",
+   "profile:DeleteRecommenderFilter",
+   "profile:GetRecommenderFilter",
+   "profile:ListTagsForResource",
+   "profile:TagResource",
+   "profile:UntagResource"
+  ],
   "AWS::CustomerProfiles::RecommenderSchema": [
    "kms:Decrypt",
    "kms:GenerateDataKey",
@@ -4801,6 +4825,13 @@
    "dax:DescribeParameterGroups",
    "dax:DescribeParameters",
    "dax:UpdateParameterGroup"
+  ],
+  "AWS::DAX::SubnetGroup": [
+   "dax:CreateSubnetGroup",
+   "dax:DeleteSubnetGroup",
+   "dax:DescribeSubnetGroups",
+   "dax:UpdateSubnetGroup",
+   "iam:CreateServiceLinkedRole"
   ],
   "AWS::DLM::LifecyclePolicy": [
    "dlm:CreateLifecyclePolicy",
@@ -6345,6 +6376,13 @@
    "ec2:DeleteIpamExternalResourceVerificationToken",
    "ec2:DeleteTags",
    "ec2:DescribeIpamExternalResourceVerificationTokens"
+  ],
+  "AWS::EC2::IpamInternetRegistryAssociation": [
+   "ec2:CreateIpamInternetRegistryAssociation",
+   "ec2:CreateTags",
+   "ec2:DeleteIpamInternetRegistryAssociation",
+   "ec2:DeleteTags",
+   "ec2:DescribeIpamInternetRegistryAssociations"
   ],
   "AWS::EC2::KeyPair": [
    "ec2:CreateKeyPair",
@@ -8446,6 +8484,38 @@
    "s3:GetAccessPoint",
    "s3:PutAccessPointPolicy"
   ],
+  "AWS::FSx::Snapshot": [
+   "fsx:CreateSnapshot",
+   "fsx:DeleteSnapshot",
+   "fsx:DescribeSnapshots",
+   "fsx:ListTagsForResource",
+   "fsx:TagResource",
+   "fsx:UntagResource",
+   "fsx:UpdateSnapshot"
+  ],
+  "AWS::FSx::StorageVirtualMachine": [
+   "fsx:CreateStorageVirtualMachine",
+   "fsx:DeleteStorageVirtualMachine",
+   "fsx:DescribeStorageVirtualMachines",
+   "fsx:ListTagsForResource",
+   "fsx:TagResource",
+   "fsx:UntagResource",
+   "fsx:UpdateStorageVirtualMachine",
+   "kms:Decrypt",
+   "secretsmanager:DescribeSecret",
+   "secretsmanager:GetSecretValue"
+  ],
+  "AWS::FSx::Volume": [
+   "fsx:CreateVolume",
+   "fsx:CreateVolumeFromBackup",
+   "fsx:DeleteVolume",
+   "fsx:DescribeStorageVirtualMachines",
+   "fsx:DescribeVolumes",
+   "fsx:ListTagsForResource",
+   "fsx:TagResource",
+   "fsx:UntagResource",
+   "fsx:UpdateVolume"
+  ],
   "AWS::FinSpace::Environment": [
    "finspace:CreateEnvironment",
    "finspace:DeleteEnvironment",
@@ -9741,6 +9811,7 @@
    "imagebuilder:UntagResource"
   ],
   "AWS::ImageBuilder::InfrastructureConfiguration": [
+   "autoscaling:DescribeAutoScalingGroups",
    "iam:CreateServiceLinkedRole",
    "iam:GetInstanceProfile",
    "iam:GetRole",
@@ -11358,6 +11429,38 @@
    "license-manager-linux-subscriptions:TagResource",
    "license-manager-linux-subscriptions:UntagResource"
   ],
+  "AWS::LicenseManagerUserSubscriptions::LicenseServerEndpoint": [
+   "ds:AuthorizeApplication",
+   "ds:DescribeDirectories",
+   "ds:DescribeDomainControllers",
+   "ds:GetAuthorizedApplicationDetails",
+   "ds:UnauthorizeApplication",
+   "ec2:AuthorizeSecurityGroupIngress",
+   "ec2:CreateNetworkInterface",
+   "ec2:CreateNetworkInterfacePermission",
+   "ec2:CreateSecurityGroup",
+   "ec2:CreateTags",
+   "ec2:DeleteNetworkInterface",
+   "ec2:DescribeNetworkInterfaces",
+   "ec2:DescribeSubnets",
+   "ec2:DescribeVpcs",
+   "kms:Decrypt",
+   "license-manager-user-subscriptions:CreateLicenseServerEndpoint",
+   "license-manager-user-subscriptions:DeleteLicenseServerEndpoint",
+   "license-manager-user-subscriptions:ListLicenseServerEndpoints",
+   "license-manager-user-subscriptions:ListTagsForResource",
+   "license-manager-user-subscriptions:TagResource",
+   "license-manager-user-subscriptions:UntagResource",
+   "route53:AssociateVPCWithHostedZone",
+   "route53:ChangeResourceRecordSets",
+   "route53:CreateHostedZone",
+   "route53:DeleteHostedZone",
+   "route53:GetHostedZone",
+   "route53:ListHostedZonesByName",
+   "route53:ListHostedZonesByVPC",
+   "route53:ListResourceRecordSets",
+   "secretsmanager:GetSecretValue"
+  ],
   "AWS::Lightsail::Alarm": [
    "lightsail:DeleteAlarm",
    "lightsail:GetAlarms",
@@ -12360,6 +12463,12 @@
    "mediaconnect:UpdateFlowSource",
    "mediaconnect:UpdateRouterOutput",
    "medialive:UpdateInput"
+  ],
+  "AWS::MediaConvert::CertificateAssociation": [
+   "acm:DescribeCertificate",
+   "acm:SearchCertificates",
+   "mediaconvert:AssociateCertificate",
+   "mediaconvert:DisassociateCertificate"
   ],
   "AWS::MediaConvert::JobTemplate": [
    "mediaconvert:CreateJobTemplate",
@@ -14468,6 +14577,21 @@
    "quicksight:DescribeApprovalPolicy",
    "quicksight:UpdateApprovalPolicy"
   ],
+  "AWS::QuickSight::Assignment": [
+   "quicksight:CreateIAMPolicyAssignment",
+   "quicksight:DeleteIAMPolicyAssignment",
+   "quicksight:DescribeIAMPolicyAssignment",
+   "quicksight:UpdateIAMPolicyAssignment"
+  ],
+  "AWS::QuickSight::Brand": [
+   "quicksight:CreateBrand",
+   "quicksight:DeleteBrand",
+   "quicksight:DescribeBrand",
+   "quicksight:ListTagsForResource",
+   "quicksight:TagResource",
+   "quicksight:UntagResource",
+   "quicksight:UpdateBrand"
+  ],
   "AWS::QuickSight::CustomPermissions": [
    "quicksight:CreateCustomPermissions",
    "quicksight:DeleteCustomPermissions",
@@ -14569,6 +14693,12 @@
    "quicksight:UntagResource",
    "quicksight:UpdateFolder",
    "quicksight:UpdateFolderPermissions"
+  ],
+  "AWS::QuickSight::Group": [
+   "quicksight:CreateGroup",
+   "quicksight:DeleteGroup",
+   "quicksight:DescribeGroup",
+   "quicksight:UpdateGroup"
   ],
   "AWS::QuickSight::KnowledgeBase": [
    "quicksight:CreateKnowledgeBase",
@@ -14971,6 +15101,7 @@
    "rds:DeleteGlobalCluster",
    "rds:DescribeDBClusters",
    "rds:DescribeGlobalClusters",
+   "rds:ListTagsForResource",
    "rds:ModifyGlobalCluster",
    "rds:RemoveFromGlobalCluster",
    "rds:RemoveTagsFromResource"
@@ -18591,6 +18722,36 @@
    "states:ListStateMachineVersions",
    "states:PublishStateMachineVersion"
   ],
+  "AWS::StorageGateway::NFSFileShare": [
+   "iam:PassRole",
+   "logs:CreateLogDelivery",
+   "logs:DeleteLogDelivery",
+   "logs:GetLogDelivery",
+   "logs:ListLogDeliveries",
+   "logs:UpdateLogDelivery",
+   "storagegateway:AddTagsToResource",
+   "storagegateway:CreateNFSFileShare",
+   "storagegateway:DeleteFileShare",
+   "storagegateway:DescribeNFSFileShares",
+   "storagegateway:ListTagsForResource",
+   "storagegateway:RemoveTagsFromResource",
+   "storagegateway:UpdateNFSFileShare"
+  ],
+  "AWS::StorageGateway::SMBFileShare": [
+   "iam:PassRole",
+   "logs:CreateLogDelivery",
+   "logs:DeleteLogDelivery",
+   "logs:GetLogDelivery",
+   "logs:ListLogDeliveries",
+   "logs:UpdateLogDelivery",
+   "storagegateway:AddTagsToResource",
+   "storagegateway:CreateSMBFileShare",
+   "storagegateway:DeleteFileShare",
+   "storagegateway:DescribeSMBFileShares",
+   "storagegateway:ListTagsForResource",
+   "storagegateway:RemoveTagsFromResource",
+   "storagegateway:UpdateSMBFileShare"
+  ],
   "AWS::StorageGateway::Tape": [
    "kms:CreateGrant",
    "kms:DescribeKey",
@@ -18736,6 +18897,14 @@
    "timestream:TagResource",
    "timestream:UntagResource",
    "timestream:UpdateDatabase"
+  ],
+  "AWS::Timestream::InfluxDBBackup": [
+   "timestream-influxdb:CreateDbBackup",
+   "timestream-influxdb:DeleteDbBackup",
+   "timestream-influxdb:GetDbBackup",
+   "timestream-influxdb:ListTagsForResource",
+   "timestream-influxdb:TagResource",
+   "timestream-influxdb:UntagResource"
   ],
   "AWS::Timestream::InfluxDBCluster": [
    "ec2:CreateNetworkInterface",
@@ -19991,6 +20160,7 @@
   "AWS::Lex": "lex",
   "AWS::LicenseManager": "license-manager",
   "AWS::LicenseManagerLinuxSubscriptions": "license-manager-linux-subscriptions",
+  "AWS::LicenseManagerUserSubscriptions": "route53",
   "AWS::Lightsail": "lightsail",
   "AWS::Location": "geo",
   "AWS::Logs": "logs",
