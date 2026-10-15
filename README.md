@@ -226,9 +226,10 @@ it, so take it off them first, the execution role before the others, because
 the boundary stops the execution role from removing boundaries:
 
 1. The execution role: `cdk bootstrap` keeps the boundary when
-   `--custom-permissions-boundary` is left out, so clear the bootstrap stack's
-   `InputPermissionsBoundary` parameter (CloudFormation console: Update stack,
-   Use existing template), or delete the bootstrap stack.
+   `--custom-permissions-boundary` is left out, even though it prints
+   `Removing existing permissions boundary`. Clear the bootstrap stack's
+   `InputPermissionsBoundary` parameter instead (CloudFormation console: Update
+   stack, Use existing template), or delete the bootstrap stack.
 2. Your stacks' roles: remove `@aws-cdk/core:permissionsBoundary` from
    `cdk.json` and redeploy (or destroy) each app.
 
