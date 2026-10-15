@@ -165,12 +165,10 @@ type PolicyDocument struct {
 // while creating, updating and deleting the type on bench, plus iam:PassRole where
 // the type takes a role ARN (CloudTrail never shows it). An empty row means the
 // type needs nothing. Authorization-only checks never show up in CloudTrail either
-// (EC2 tag-on-create needs ec2:CreateTags); the verify pass catches those. CloudTrail event names are mapped to IAM actions where they
-// differ (Budgets). Dynamic references are left out: RequiredActions adds those from
-// the template. Tag actions for Budgets and MediaLive::InputSecurityGroup come from
+// (EC2 tag-on-create needs ec2:CreateTags); the verify pass catches those. Dynamic references are left out: RequiredActions adds
+// those from the template. Tag actions for MediaLive::InputSecurityGroup come from
 // the IAM docs (bench templates did not change tags in place). Measured 2026-10-06 (#5).
 var handWritten = map[string][]string{
-	"AWS::AppSync::GraphQLSchema":              {"appsync:GetSchemaCreationStatus", "appsync:StartSchemaCreation"},
 	"AWS::CloudFormation::WaitConditionHandle": {},
 	"AWS::CodeBuild::Project":                  {"codebuild:CreateProject", "codebuild:DeleteProject", "codebuild:UpdateProject", "iam:PassRole"},
 	"AWS::IAM::UserToGroupAddition":            {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
@@ -183,9 +181,7 @@ var handWritten = map[string][]string{
 		"autoscaling-plans:DescribeScalingPlans", "autoscaling-plans:UpdateScalingPlan", "autoscaling:DeletePolicy",
 		"autoscaling:DescribeAutoScalingGroups", "autoscaling:DescribePolicies", "autoscaling:PutScalingPolicy", "autoscaling:UpdateAutoScalingGroup",
 		"cloudwatch:DeleteAlarms", "cloudwatch:DescribeAlarms", "cloudwatch:PutMetricAlarm", "iam:CreateServiceLinkedRole"},
-	"AWS::Budgets::Budget":       {"budgets:ListTagsForResource", "budgets:ModifyBudget", "budgets:TagResource", "budgets:UntagResource", "budgets:ViewBudget"},
 	"AWS::CloudFormation::Macro": {"iam:PassRole"},
-	"AWS::DAX::SubnetGroup":      {"dax:CreateSubnetGroup", "dax:DeleteSubnetGroup", "dax:UpdateSubnetGroup"},
 	"AWS::DocDB::DBCluster": {"rds:AddTagsToResource", "rds:CreateDBCluster", "rds:DeleteDBCluster",
 		"rds:DescribeDBClusters", "rds:ModifyDBCluster", "rds:RemoveTagsFromResource"},
 	"AWS::ElasticLoadBalancingV2::ListenerCertificate": {"elasticloadbalancing:AddListenerCertificates", "elasticloadbalancing:RemoveListenerCertificates"},
@@ -221,10 +217,6 @@ var handWritten = map[string][]string{
 		"es:DescribeElasticsearchDomain", "es:ListTags", "es:RemoveTags", "iam:PassRole"},
 	"AWS::FSx::FileSystem": {"fsx:CreateFileSystem", "fsx:DeleteFileSystem", "fsx:DescribeFileSystems",
 		"fsx:TagResource", "fsx:UntagResource", "fsx:UpdateFileSystem"},
-	"AWS::FSx::Snapshot": {"fsx:CreateSnapshot", "fsx:DeleteSnapshot", "fsx:DescribeSnapshots",
-		"fsx:TagResource", "fsx:UntagResource", "fsx:UpdateSnapshot"},
-	"AWS::FSx::StorageVirtualMachine": {"fsx:CreateStorageVirtualMachine", "fsx:DeleteStorageVirtualMachine",
-		"fsx:DescribeStorageVirtualMachines", "fsx:TagResource", "fsx:UntagResource"},
 }
 
 // passRole prefixes a token meaning "iam:PassRole, only to this service":
