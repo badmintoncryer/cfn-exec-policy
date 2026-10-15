@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -81,15 +82,16 @@ func newFlags(name string) common {
 // required loads inputs (plus deployed templates when clients is set) and returns
 // the needed actions, printing warnings to stderr. With --strict it also returns
 // the PassRole scope and errors on anything the boundary would reject.
-func required(c common, clients *awsClients) ([]string, *Strict, error) {
+func required(c common, clients *awsClients) ([]string, *Strict, []*Template, error) {
 	tbl, err := LoadTable(*c.refresh)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	tpls, err := LoadInputs(c.fs.Args())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+	inputs := tpls
 	var strict *Strict
 	var errs []string
 	if *c.strict {
@@ -99,7 +101,7 @@ func required(c common, clients *awsClients) ([]string, *Strict, error) {
 		}
 		name, err := boundaryName(boundaryOrDefault(c), account)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		strict = &Strict{Boundary: name}
 		// Only the templates about to be deployed: the roles already deployed get the boundary with them.
@@ -108,7 +110,7 @@ func required(c common, clients *awsClients) ([]string, *Strict, error) {
 	if clients != nil {
 		deployed, err := clients.deployedTemplates(context.Background(), tpls)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		tpls = append(tpls, deployed...)
 	}
@@ -119,7 +121,7 @@ func required(c common, clients *awsClients) ([]string, *Strict, error) {
 		}
 		roles, ws, err := PassRoleScope(tpls)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		strict.Roles = roles
 		warnings = append(warnings, ws...)
@@ -128,9 +130,9 @@ func required(c common, clients *awsClients) ([]string, *Strict, error) {
 		fmt.Fprintln(os.Stderr, "warning:", w)
 	}
 	if len(errs) > 0 {
-		return nil, nil, fmt.Errorf("--strict:\n  %s", strings.Join(errs, "\n  "))
+		return nil, nil, nil, fmt.Errorf("--strict:\n  %s", strings.Join(errs, "\n  "))
 	}
-	return actions, strict, nil
+	return actions, strict, inputs, nil
 }
 
 func boundaryOrDefault(c common) string {
@@ -143,7 +145,7 @@ func boundaryOrDefault(c common) string {
 func runGenerate(args []string) error {
 	c := newFlags("generate")
 	c.fs.Parse(args)
-	actions, strict, err := required(c, nil)
+	actions, strict, _, err := required(c, nil)
 	if err != nil {
 		return err
 	}
@@ -168,7 +170,7 @@ func runCheck(args []string) error {
 	if err != nil {
 		return err
 	}
-	need, _, err := required(c, clients)
+	need, _, _, err := required(c, clients)
 	if err != nil {
 		return err
 	}
@@ -203,7 +205,7 @@ func runApply(args []string) error {
 	if err != nil {
 		return err
 	}
-	actions, strict, err := required(c, clients)
+	actions, strict, inputs, err := required(c, clients)
 	if err != nil {
 		return err
 	}
@@ -237,12 +239,11 @@ func runApply(args []string) error {
 		arns = append(arns, clients.policyArn(names[i]))
 	}
 	fmt.Fprintf(os.Stderr, "wrote %s\n\nNow point the execution role at it:\n\n", strings.Join(names, ", "))
-	cmd := fmt.Sprintf("cdk bootstrap aws://%s/%s --cloudformation-execution-policies %s",
-		clients.account, clients.cfg.Region, strings.Join(arns, ","))
+	opts := " --cloudformation-execution-policies " + strings.Join(arns, ",")
 	if strict != nil {
-		cmd += " --custom-permissions-boundary " + strict.Boundary
+		opts += " --custom-permissions-boundary " + strict.Boundary
 	}
-	fmt.Println(cmd)
+	clients.printBootstrap(ctx, execRoles(inputs, clients), opts)
 	if strict != nil {
 		fmt.Fprintf(os.Stderr, "\nEvery app deploying to this environment needs the boundary on its roles; in cdk.json:\n"+
 			"  \"context\": {\"@aws-cdk/core:permissionsBoundary\": {\"name\": %q}}\n", strict.Boundary)
@@ -278,10 +279,16 @@ func runDelete(args []string) error {
 		names = nil
 	}
 	attached := false
+	var roles []string
 	for _, n := range names {
 		es, err := clients.attachedTo(ctx, n)
 		if err != nil {
 			return err
+		}
+		for _, e := range es {
+			if r, ok := strings.CutPrefix(e, "role/"); ok && !slices.Contains(roles, r) {
+				roles = append(roles, r)
+			}
 		}
 		if len(es) > 0 {
 			attached = true
@@ -301,8 +308,7 @@ func runDelete(args []string) error {
 		// Detaching it here would leave the bootstrap stack pointing at a deleted
 		// policy, so let CloudFormation do it.
 		fmt.Fprintf(os.Stderr, "\nPoint the execution role back at AdministratorAccess (or delete the bootstrap stack) first:\n\n")
-		fmt.Printf("cdk bootstrap aws://%s/%s --cloudformation-execution-policies arn:%s:iam::aws:policy/AdministratorAccess\n",
-			clients.account, clients.cfg.Region, clients.part)
+		clients.printBootstrap(ctx, roles, " --cloudformation-execution-policies arn:"+clients.part+":iam::aws:policy/AdministratorAccess")
 	}
 	// Not for the boundary alone: re-bootstrapping doesn't take it off the exec role.
 	if len(bounded) > 0 {

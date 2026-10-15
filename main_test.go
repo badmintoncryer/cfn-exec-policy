@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -167,6 +168,18 @@ func TestHandWrittenOnlyForTypesWithoutHandlers(t *testing.T) {
 type fakeCFN struct {
 	templates map[string]string
 	nested    map[string][]string
+	owners    map[string]string // physical ID -> stack name; "" means access denied
+}
+
+func (f fakeCFN) DescribeStackResources(_ context.Context, in *cloudformation.DescribeStackResourcesInput, _ ...func(*cloudformation.Options)) (*cloudformation.DescribeStackResourcesOutput, error) {
+	s, ok := f.owners[*in.PhysicalResourceId]
+	if !ok {
+		return nil, errors.New("Stack for " + *in.PhysicalResourceId + " does not exist")
+	}
+	if s == "" {
+		return nil, errors.New("AccessDenied")
+	}
+	return &cloudformation.DescribeStackResourcesOutput{StackResources: []cfntypes.StackResource{{StackName: aws.String(s)}}}, nil
 }
 
 func (f fakeCFN) GetTemplate(_ context.Context, in *cloudformation.GetTemplateInput, _ ...func(*cloudformation.Options)) (*cloudformation.GetTemplateOutput, error) {
@@ -453,5 +466,37 @@ func TestBoundaryProtectsOnlyThisToolsPolicies(t *testing.T) {
 	// A stack named p-app creates policies named p-app-Policy-…; the boundary must not freeze them.
 	if strings.Contains(got, `policy/p*"`) {
 		t.Errorf("prefix wildcard on the policy name: %s", got)
+	}
+}
+
+// The printed `cdk bootstrap` must target the bootstrap stack that owns the exec role,
+// not the default CDKToolkit.
+func TestBootstrapFlags(t *testing.T) {
+	tpls, err := LoadInputs([]string{"testdata/cdk.out"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := &awsClients{account: "123456789012", cfg: aws.Config{Region: "us-east-1"}}
+	roles := execRoles(tpls, c)
+	slices.Sort(roles)
+	if want := []string{"cdk-hnb659fds-cfn-exec-role-123456789012-us-east-1", "cdk-stg-cfn-exec-role-123456789012-us-east-1"}; !slices.Equal(roles, want) {
+		t.Fatalf("execRoles = %v, want %v", roles, want)
+	}
+	c.cfn = fakeCFN{owners: map[string]string{
+		"cdk-hnb659fds-cfn-exec-role-123456789012-us-east-1": "CDKToolkit",
+		"cdk-stg-cfn-exec-role-123456789012-us-east-1":       "CDKToolkit-stg",
+		"MyExecRole": "MyBootstrap",
+		"cdk-locked-cfn-exec-role-123456789012-us-east-1": "",
+	}}
+	for role, want := range map[string]string{
+		"cdk-hnb659fds-cfn-exec-role-123456789012-us-east-1": "",
+		"cdk-stg-cfn-exec-role-123456789012-us-east-1":       " --qualifier stg --toolkit-stack-name CDKToolkit-stg",
+		"cdk-new-cfn-exec-role-123456789012-us-east-1":       " --qualifier new --toolkit-stack-name CDKToolkit-new", // not bootstrapped yet
+		"MyExecRole": " --toolkit-stack-name MyBootstrap",
+		"cdk-locked-cfn-exec-role-123456789012-us-east-1": " --qualifier locked", // can't look up: no guessed stack name
+	} {
+		if got := c.bootstrapFlags(context.Background(), role); got != want {
+			t.Errorf("bootstrapFlags(%s) = %q, want %q", role, got, want)
+		}
 	}
 }

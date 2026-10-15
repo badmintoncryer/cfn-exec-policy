@@ -24,7 +24,7 @@ npx cfn-exec-policy apply        # 管理ポリシー "cfn-exec-policy" を作�
 # → 表示: cdk bootstrap aws://123456789012/us-east-1 --cloudformation-execution-policies arn:aws:iam::123456789012:policy/cfn-exec-policy
 ```
 
-表示された`cdk bootstrap`のコマンドを1回実行すれば、その環境のデプロイはすべて、管理者権限ではなく生成したポリシーで行われます。
+表示された`cdk bootstrap`のコマンドを1回実行すれば、その環境のデプロイはすべて、管理者権限ではなく生成したポリシーで行われます。アプリが独自のbootstrap qualifierを使っている場合、表示するコマンドには、そのbootstrapの`--qualifier`と`--toolkit-stack-name`も付きます（`cdk.out`から読み取ります）。そのため、既定の`CDKToolkit`スタックを書き換えることはありません。
 
 テンプレートを変えたら、デプロイの前にポリシーを更新します。
 
@@ -56,8 +56,8 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 | コマンド | アクション |
 |---|---|
 | `check`、`apply` | `cloudformation:GetTemplate`、`cloudformation:ListStackResources`（デプロイ済みのテンプレートとネストスタックを読む）、`iam:GetPolicy`、`iam:GetPolicyVersion` |
-| `apply`のみ | `iam:CreatePolicy`、`iam:CreatePolicyVersion`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`（ポリシーの版がすでに5つあるとき、既定でない最も古い版を消す） |
-| `delete` | `iam:GetPolicy`、`iam:GetPolicyVersion`、`iam:ListEntitiesForPolicy`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`、`iam:DeletePolicy` |
+| `apply`のみ | `cloudformation:DescribeStackResources`（表示するコマンドのために、bootstrapのスタックを探す）、`iam:CreatePolicy`、`iam:CreatePolicyVersion`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`（ポリシーの版がすでに5つあるとき、既定でない最も古い版を消す） |
+| `delete` | `cloudformation:DescribeStackResources`、`iam:GetPolicy`、`iam:GetPolicyVersion`、`iam:ListEntitiesForPolicy`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`、`iam:DeletePolicy` |
 
 `sts:GetCallerIdentity`も呼びますが、これに権限は要りません。`generate`と`--refresh-schemas`には、AWSの権限は要りません。
 
@@ -67,7 +67,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": ["cloudformation:GetTemplate", "cloudformation:ListStackResources"],
+      "Action": ["cloudformation:GetTemplate", "cloudformation:ListStackResources", "cloudformation:DescribeStackResources"],
       "Resource": "arn:aws:cloudformation:*:<account>:stack/*"
     },
     {

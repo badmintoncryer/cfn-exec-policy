@@ -12,6 +12,7 @@ import (
 // Template is one CloudFormation template. Nested stacks are loaded as their own Template.
 type Template struct {
 	StackName  string // deployed stack name; empty for nested stacks and plain files
+	ExecRole   string // cloudFormationExecutionRoleArn from the cloud assembly; empty for plain files
 	Path       string
 	Raw        []byte
 	Parameters map[string]struct {
@@ -74,6 +75,7 @@ func loadAssembly(dir string) ([]*Template, error) {
 				TemplateFile  string `json:"templateFile"`
 				StackName     string `json:"stackName"`
 				DirectoryName string `json:"directoryName"`
+				ExecRole      string `json:"cloudFormationExecutionRoleArn"`
 			} `json:"properties"`
 		} `json:"artifacts"`
 	}
@@ -89,6 +91,7 @@ func loadAssembly(dir string) ([]*Template, error) {
 				return nil, err
 			}
 			t.StackName = a.Properties.StackName
+			t.ExecRole = a.Properties.ExecRole
 			if t.StackName == "" {
 				t.StackName = id
 			}

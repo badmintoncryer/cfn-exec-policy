@@ -1,4 +1,4 @@
 {"version":"36.0.0","artifacts":{
- "App":{"type":"aws:cloudformation:stack","environment":"aws://unknown-account/unknown-region","properties":{"templateFile":"App.template.json"}},
+ "App":{"type":"aws:cloudformation:stack","environment":"aws://unknown-account/unknown-region","properties":{"templateFile":"App.template.json","cloudFormationExecutionRoleArn":"arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-${AWS::Region}"}},
  "Tree":{"type":"cdk:tree","properties":{"file":"tree.json"}},
  "assembly-Stage":{"type":"cdk:cloud-assembly","properties":{"directoryName":"assembly-Stage"}}}}
