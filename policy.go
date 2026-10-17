@@ -319,8 +319,8 @@ func size(d PolicyDocument) int {
 	return len(b)
 }
 
-// Documents splits actions into as few policy documents as fit the size limit.
-// strict is nil unless --strict.
+// Documents splits actions into as few policy documents as fit the size limit,
+// always at least one. strict is nil unless --strict.
 func Documents(actions []string, strict *Strict) []PolicyDocument {
 	sort.Strings(actions)
 	var plain, services []string
@@ -342,6 +342,9 @@ func Documents(actions []string, strict *Strict) []PolicyDocument {
 	}
 	if len(cur) > 0 || len(docs) == 0 && len(services) > 0 {
 		docs = append(docs, newDoc(len(docs)+1, cur, services, strict))
+	}
+	if len(docs) == 0 { // nothing needed; IAM has no empty policy
+		docs = append(docs, EmptyDocument())
 	}
 	return docs
 }

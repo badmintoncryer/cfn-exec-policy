@@ -137,6 +137,10 @@ func TestEmptyDocumentGrantsNothing(t *testing.T) {
 	if err != nil || len(got) != 0 {
 		t.Fatalf("EmptyDocument allows %v (err %v)", got, err)
 	}
+	// A stack with nothing to grant still gets one document for apply to write.
+	if docs := Documents(nil, nil); len(docs) != 1 || docs[0].Statement[0].Effect != "Deny" {
+		t.Errorf("Documents(nil) = %+v", docs)
+	}
 }
 
 func TestHandWritten(t *testing.T) {
