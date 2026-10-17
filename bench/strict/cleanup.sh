@@ -1,10 +1,11 @@
 #!/bin/bash
 # Removes the IAM roles and policies run.sh created.
+R=${AWS_REGION:-ap-northeast-1}
 A=$(aws sts get-caller-identity --query Account --output text)
 # Roles still carrying the boundary (retained by a failed delete) block deleting it.
 leftover=$(aws iam list-entities-for-policy --policy-arn arn:aws:iam::$A:policy/cfnxp-strict-boundary \
   --policy-usage-filter PermissionsBoundary --query 'PolicyRoles[].RoleName' --output text 2>/dev/null)
-for r in $leftover cdk-cfnxp-strict-exec cfnxp-default-exec cfnxp-strict-app-target cdk-cfnxp-strict-target cfnxp-strict-unbounded; do
+for r in $leftover cdk-cfnxp-cfn-exec-role-$A-$R cfnxp-default-exec cfnxp-strict-app-target cdk-cfnxp-deploy-role-$A-$R cfnxp-strict-unbounded; do
   for p in $(aws iam list-attached-role-policies --role-name $r --query 'AttachedPolicies[].PolicyArn' --output text 2>/dev/null); do
     aws iam detach-role-policy --role-name $r --policy-arn $p
   done

@@ -153,7 +153,9 @@ func BoundaryDocument(partition, account, boundary, policyName string) PolicyDoc
 		{Sid: "DenyUsers", Effect: "Deny", Resource: "*",
 			Action: []string{"iam:AddUserToGroup", "iam:AttachGroupPolicy", "iam:AttachUserPolicy", "iam:CreateAccessKey",
 				"iam:CreateLoginProfile", "iam:CreateUser", "iam:PutGroupPolicy", "iam:PutUserPolicy", "iam:UpdateLoginProfile"}},
-		{Sid: "DenyCdkRoles", Effect: "Deny", Resource: arn("role", "cdk-*"),
+		// The bootstrap roles' names (cdk-<qualifier>-<kind>-role-<account>-<region>); a bare
+		// cdk-* would also freeze the roles of a stack whose name starts with cdk-.
+		{Sid: "DenyCdkRoles", Effect: "Deny", Resource: arn("role", "cdk-*-role-"+account+"-*"),
 			Action: []string{"iam:Attach*", "iam:Delete*", "iam:Detach*", "iam:Put*", "iam:Tag*", "iam:Untag*", "iam:Update*"}},
 	}}
 }

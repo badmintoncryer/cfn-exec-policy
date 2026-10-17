@@ -112,7 +112,7 @@ CloudFormationは、リソース型ごとにスキーマを公開しています
 - permissions boundaryを外すこと
 - boundaryと`<policy-name>*`のポリシーを作ったり書き換えたりすること
 - IAMユーザー、そのアクセスキーとパスワード、グループへの権限付与
-- `cdk-*`のロール（実行ロール自身を含む）を変えること
+- `cdk bootstrap`が作るロール（`cdk-*-role-<account>-*`。実行ロール自身を含む）を変えること
 
 スタックが作るロールには、すべてこのboundaryが要ります。アプリ全体に付けるには、`cdk.json`に次のように書きます。
 
