@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -220,6 +222,34 @@ func TestDeployedNestedStacks(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(types, " "), "AWS::SNS::Topic") {
 		t.Errorf("nested-of-nested template not fetched: %v", types)
+	}
+}
+
+// Deployed templates are read in each stack's own region, and not from another account.
+func TestDeployedInStackEnvironment(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "manifest.json"), []byte(`{"artifacts":{"Eu":{"type":"aws:cloudformation:stack",
+		"environment":"aws://111111111111/eu-west-1","properties":{"templateFile":"Eu.template.json"}}}}`), 0o644)
+	os.WriteFile(filepath.Join(dir, "Eu.template.json"), []byte(`{"Resources":{}}`), 0o644)
+	tpls, err := LoadInputs([]string{dir})
+	if err != nil || tpls[0].Account != "111111111111" || tpls[0].Region != "eu-west-1" {
+		t.Fatalf("environment not read: %+v %v", tpls, err)
+	}
+	other := &Template{StackName: "Eu", Account: "222222222222"}
+	c := &awsClients{account: "111111111111", cfg: aws.Config{Region: "us-east-1"}, cfn: fakeCFN{templates: map[string]string{
+		"Eu": `{"Resources":{"Wrong":{"Type":"AWS::SNS::Topic"}}}`,
+	}}, regional: map[string]cfnAPI{"eu-west-1": fakeCFN{templates: map[string]string{
+		"Eu": `{"Resources":{"Topic":{"Type":"AWS::SQS::Queue"}}}`,
+	}}}}
+	got, err := c.deployedTemplates(context.Background(), append(tpls, other))
+	if err != nil || len(got) != 1 || got[0].Resources["Topic"].Type != "AWS::SQS::Queue" {
+		t.Errorf("got %+v %v", got, err)
+	}
+	if r := roleRegion("cdk-hnb659fds-cfn-exec-role-111111111111-eu-west-1"); r != "eu-west-1" {
+		t.Errorf("roleRegion = %q", r)
+	}
+	if r := roleRegion("MyExecRole"); r != "" {
+		t.Errorf("roleRegion of a custom name = %q", r)
 	}
 }
 
