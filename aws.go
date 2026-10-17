@@ -41,11 +41,26 @@ type iamAPI interface {
 }
 
 type awsClients struct {
-	cfg     aws.Config
-	cfn     cfnAPI
-	iam     iamAPI
-	account string
-	part    string
+	cfg      aws.Config
+	cfn      cfnAPI
+	regional map[string]cfnAPI // other regions' clients, made by cfnIn
+	iam      iamAPI
+	account  string
+	part     string
+}
+
+// cfnIn returns the CloudFormation client for region ("" for the configured one).
+func (c *awsClients) cfnIn(region string) cfnAPI {
+	if region == "" || region == c.cfg.Region {
+		return c.cfn
+	}
+	if c.regional[region] == nil {
+		if c.regional == nil {
+			c.regional = map[string]cfnAPI{}
+		}
+		c.regional[region] = cloudformation.NewFromConfig(c.cfg, func(o *cloudformation.Options) { o.Region = region })
+	}
+	return c.regional[region]
 }
 
 func newClients(ctx context.Context) (*awsClients, error) {
@@ -73,7 +88,11 @@ func (c *awsClients) deployedTemplates(ctx context.Context, tpls []*Template) ([
 		if t.StackName == "" {
 			continue
 		}
-		ts, err := c.deployed(ctx, t.StackName)
+		if t.Account != "" && t.Account != c.account {
+			fmt.Fprintf(os.Stderr, "warning: %s deploys to account %s, not %s; its deployed template is not read\n", t.StackName, t.Account, c.account)
+			continue
+		}
+		ts, err := c.deployed(ctx, c.cfnIn(t.Region), t.StackName)
 		if err != nil {
 			if strings.Contains(err.Error(), "does not exist") {
 				continue
@@ -86,8 +105,8 @@ func (c *awsClients) deployedTemplates(ctx context.Context, tpls []*Template) ([
 }
 
 // deployed returns the template of stack (a name or ARN) and, recursively, of its nested stacks.
-func (c *awsClients) deployed(ctx context.Context, stack string) ([]*Template, error) {
-	res, err := c.cfn.GetTemplate(ctx, &cloudformation.GetTemplateInput{
+func (c *awsClients) deployed(ctx context.Context, cfn cfnAPI, stack string) ([]*Template, error) {
+	res, err := cfn.GetTemplate(ctx, &cloudformation.GetTemplateInput{
 		StackName: aws.String(stack), TemplateStage: cfntypes.TemplateStageProcessed,
 	})
 	if err != nil {
@@ -98,7 +117,7 @@ func (c *awsClients) deployed(ctx context.Context, stack string) ([]*Template, e
 		return nil, err
 	}
 	out := []*Template{t}
-	p := cloudformation.NewListStackResourcesPaginator(c.cfn, &cloudformation.ListStackResourcesInput{StackName: aws.String(stack)})
+	p := cloudformation.NewListStackResourcesPaginator(cfn, &cloudformation.ListStackResourcesInput{StackName: aws.String(stack)})
 	for p.HasMorePages() {
 		page, err := p.NextPage(ctx)
 		if err != nil {
@@ -108,7 +127,7 @@ func (c *awsClients) deployed(ctx context.Context, stack string) ([]*Template, e
 			if aws.ToString(r.ResourceType) != "AWS::CloudFormation::Stack" || aws.ToString(r.PhysicalResourceId) == "" {
 				continue
 			}
-			nested, err := c.deployed(ctx, aws.ToString(r.PhysicalResourceId))
+			nested, err := c.deployed(ctx, cfn, aws.ToString(r.PhysicalResourceId))
 			if err != nil {
 				return nil, err
 			}
@@ -297,6 +316,17 @@ func qualifier(role string) string {
 	return q
 }
 
+// roleRegion returns the region in a default-named exec role
+// (cdk-<qualifier>-cfn-exec-role-<account>-<region>), or "" for any other name.
+func roleRegion(role string) string {
+	_, rest, ok := strings.Cut(role, "-cfn-exec-role-")
+	if !ok || qualifier(role) == "" {
+		return ""
+	}
+	_, region, _ := strings.Cut(rest, "-")
+	return region
+}
+
 // bootstrapFlags returns the --qualifier and --toolkit-stack-name that make
 // `cdk bootstrap` update the stack owning role, leaving out CDK's defaults, so a
 // copied command doesn't rewrite the default CDKToolkit instead.
@@ -306,7 +336,7 @@ func (c *awsClients) bootstrapFlags(ctx context.Context, role string) string {
 	if q != "" && q != defaultQualifier {
 		flags += " --qualifier " + q
 	}
-	res, err := c.cfn.DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{PhysicalResourceId: aws.String(role)})
+	res, err := c.cfnIn(roleRegion(role)).DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{PhysicalResourceId: aws.String(role)})
 	if err != nil && !strings.Contains(err.Error(), "does not exist") {
 		fmt.Fprintf(os.Stderr, "warning: can't find the bootstrap stack owning %s (%v); check --toolkit-stack-name before running this\n", role, err)
 		return flags
@@ -336,6 +366,10 @@ func (c *awsClients) printBootstrap(ctx context.Context, roles []string, opts st
 		if r != "" {
 			flags = c.bootstrapFlags(ctx, r)
 		}
-		fmt.Printf("cdk bootstrap aws://%s/%s%s%s\n", c.account, c.cfg.Region, flags, opts)
+		region := roleRegion(r)
+		if region == "" {
+			region = c.cfg.Region
+		}
+		fmt.Printf("cdk bootstrap aws://%s/%s%s%s\n", c.account, region, flags, opts)
 	}
 }

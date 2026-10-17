@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -13,6 +14,8 @@ import (
 type Template struct {
 	StackName  string // deployed stack name; empty for nested stacks and plain files
 	ExecRole   string // cloudFormationExecutionRoleArn from the cloud assembly; empty for plain files
+	Account    string // the stack's environment in the cloud assembly; empty when unknown
+	Region     string
 	Path       string
 	Raw        []byte
 	Parameters map[string]struct {
@@ -70,8 +73,9 @@ func loadAssembly(dir string) ([]*Template, error) {
 	}
 	var m struct {
 		Artifacts map[string]struct {
-			Type       string `json:"type"`
-			Properties struct {
+			Type        string `json:"type"`
+			Environment string `json:"environment"` // aws://<account>/<region>
+			Properties  struct {
 				TemplateFile  string `json:"templateFile"`
 				StackName     string `json:"stackName"`
 				DirectoryName string `json:"directoryName"`
@@ -92,6 +96,7 @@ func loadAssembly(dir string) ([]*Template, error) {
 			}
 			t.StackName = a.Properties.StackName
 			t.ExecRole = a.Properties.ExecRole
+			t.Account, t.Region = environment(a.Environment)
 			if t.StackName == "" {
 				t.StackName = id
 			}
@@ -118,6 +123,20 @@ func loadAssembly(dir string) ([]*Template, error) {
 		out = append(out, t)
 	}
 	return out, nil
+}
+
+// environment splits aws://<account>/<region>, leaving out the unknown-account and
+// unknown-region placeholders of environment-agnostic stacks.
+func environment(env string) (account, region string) {
+	rest, _ := strings.CutPrefix(env, "aws://")
+	account, region, _ = strings.Cut(rest, "/")
+	if account == "unknown-account" {
+		account = ""
+	}
+	if region == "unknown-region" {
+		region = ""
+	}
+	return account, region
 }
 
 // loadFile loads one template.
