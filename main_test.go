@@ -493,6 +493,10 @@ func TestBoundaryProtectsOnlyThisToolsPolicies(t *testing.T) {
 	if !strings.Contains(got, `"iam:CreatePolicy",`) {
 		t.Errorf("iam:CreatePolicy not denied: %s", got)
 	}
+	// The bootstrap roles, not the roles of a stack named cdk-app.
+	if !strings.Contains(got, `"Resource":"arn:aws:iam::1:role/cdk-*-role-1-*"`) {
+		t.Errorf("DenyCdkRoles not limited to the bootstrap roles: %s", got)
+	}
 	// A stack named p-app creates policies named p-app-Policy-…; the boundary must not freeze them.
 	if strings.Contains(got, `policy/p*"`) {
 		t.Errorf("prefix wildcard on the policy name: %s", got)

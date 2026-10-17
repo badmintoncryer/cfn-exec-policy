@@ -31,6 +31,7 @@ sim "UpdateAssumeRolePolicy on an unbounded role" explicitDeny strict.json yes i
 sim "control: default, AttachRolePolicy to an unbounded role" allowed default.json no iam:AttachRolePolicy "$R/someone-admin"
 sim "AttachRolePolicy to a bounded cdk-* role" explicitDeny strict.json yes iam:AttachRolePolicy "$CDK" iam:PermissionsBoundary "$B"
 sim "PutRolePolicy on a bounded cdk-* role" explicitDeny strict.json yes iam:PutRolePolicy "$CDK" iam:PermissionsBoundary "$B"
+sim "control: AttachRolePolicy to a role of a stack named cdk-app" allowed strict.json yes iam:AttachRolePolicy "$R/cdk-app-FnServiceRole-x" iam:PermissionsBoundary "$B"
 sim "DeleteRolePermissionsBoundary" explicitDeny strict.json yes iam:DeleteRolePermissionsBoundary "$R/cfnxp-strict-app-target" iam:PermissionsBoundary "$B"
 sim "CreatePolicyVersion on the exec policy" explicitDeny strict.json yes iam:CreatePolicyVersion "arn:aws:iam::${A}:policy/cfnxp-strict"
 sim "CreatePolicyVersion on the boundary" explicitDeny strict.json yes iam:CreatePolicyVersion "$B"

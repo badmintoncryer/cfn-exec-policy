@@ -165,7 +165,8 @@ except:
 - removing a permissions boundary
 - creating or editing the boundary or the `<policy-name>*` policies
 - IAM users, their access keys and passwords, and group grants
-- changing `cdk-*` roles, the execution role included
+- changing the CDK bootstrap roles (`cdk-*-role-<account>-*`), the execution
+  role included
 
 Every role your stacks create must carry the boundary, so set it for the whole
 app in `cdk.json`:

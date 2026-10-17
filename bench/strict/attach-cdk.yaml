@@ -1,9 +1,10 @@
-# Attaches a policy to the pre-created role cdk-cfnxp-strict-target.
+# Attaches a policy to the pre-created role cdk-cfnxp-deploy-role-<account>-<region>,
+# named like a bootstrap role.
 Resources:
   Policy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      Roles: [cdk-cfnxp-strict-target]
+      Roles: [!Sub "cdk-cfnxp-deploy-role-${AWS::AccountId}-${AWS::Region}"]
       PolicyDocument:
         Version: "2012-10-17"
         Statement: [{Effect: Allow, Action: logs:CreateLogGroup, Resource: "*"}]
