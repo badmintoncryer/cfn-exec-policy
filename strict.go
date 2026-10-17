@@ -31,7 +31,7 @@ func literal(n yaml.Node) (string, bool) {
 	return "", false
 }
 
-var roleARN = regexp.MustCompile(`:role/([\w+=,.@/-]+)(\$?)`)
+var roleARN = regexp.MustCompile(`:role/([\w+=,.@/-]*)(\$?)`)
 
 // PassRoleScope returns the role ARN patterns the templates may pass: the roles
 // CloudFormation names after each stack, roles with a literal RoleName, and role
@@ -80,7 +80,8 @@ func PassRoleScope(tpls []*Template) (roles, warnings []string, err error) {
 			}
 		}
 		for _, m := range roleARN.FindAllStringSubmatch(string(t.Raw), -1) {
-			if m[2] != "" {
+			// "role/${Name}" (Fn::Sub) or a bare "role/" that Fn::Join continues with a Ref.
+			if m[1] == "" || m[2] != "" {
 				warnings = append(warnings, fmt.Sprintf("%s: role ARN %q is built from a parameter; iam:PassRole to it will be denied", t.Path, m[0]))
 				continue
 			}
