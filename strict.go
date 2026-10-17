@@ -148,13 +148,30 @@ func BoundaryDocument(partition, account, boundary, policyName string) PolicyDoc
 		// also match the policies of a stack whose name starts with policyName (bench, 2026-10-09).
 		{Sid: "DenyPolicyEdits", Effect: "Deny", Resource: []string{arn("policy", boundary), arn("policy", policyName),
 			arn("policy", policyName+"-?"), arn("policy", policyName+"-??")},
-			Action: []string{"iam:CreatePolicyVersion", "iam:DeletePolicy", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion"}},
+			// CreatePolicy: a stack creating policyName-N would have apply read it as a part.
+			Action: []string{"iam:CreatePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicy", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion"}},
 		{Sid: "DenyUsers", Effect: "Deny", Resource: "*",
 			Action: []string{"iam:AddUserToGroup", "iam:AttachGroupPolicy", "iam:AttachUserPolicy", "iam:CreateAccessKey",
 				"iam:CreateLoginProfile", "iam:CreateUser", "iam:PutGroupPolicy", "iam:PutUserPolicy", "iam:UpdateLoginProfile"}},
 		{Sid: "DenyCdkRoles", Effect: "Deny", Resource: arn("role", "cdk-*"),
 			Action: []string{"iam:Attach*", "iam:Delete*", "iam:Detach*", "iam:Put*", "iam:Tag*", "iam:Untag*", "iam:Update*"}},
 	}}
+}
+
+// Wildcards returns the actions that cover iam:PassRole or iam:CreateRole without
+// being them ("*", "iam:*", …). --strict narrows only the exact actions, so these
+// would grant both on every role.
+func Wildcards(actions []string) []string {
+	var out []string
+	for _, a := range actions {
+		for _, narrowed := range []string{"iam:PassRole", "iam:CreateRole"} {
+			if a != narrowed && Covered(narrowed, []string{a}) {
+				out = append(out, a)
+				break
+			}
+		}
+	}
+	return out
 }
 
 // boundaryName accepts a policy name or a same-account policy ARN and returns the

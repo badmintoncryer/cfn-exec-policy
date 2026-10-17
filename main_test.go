@@ -447,6 +447,13 @@ func TestPassRoleResourcesKeepOtherApps(t *testing.T) {
 	}
 }
 
+func TestWildcards(t *testing.T) {
+	got := Wildcards([]string{"*", "iam:*", "iam:Pass*", "iam:PassRole", "iam:CreateRole", "iam:List*", "s3:*"})
+	if strings.Join(got, ",") != "*,iam:*,iam:Pass*" {
+		t.Errorf("got %v", got)
+	}
+}
+
 func TestBoundaryName(t *testing.T) {
 	for in, want := range map[string]string{"b": "b", "arn:aws:iam::111111111111:policy/team/b": "team/b"} {
 		if got, err := boundaryName(in, "111111111111"); got != want || err != nil {
@@ -481,6 +488,10 @@ func TestBoundaryProtectsOnlyThisToolsPolicies(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %s", want)
 		}
+	}
+	// A stack must not create p-2 for apply to read as a part.
+	if !strings.Contains(got, `"iam:CreatePolicy",`) {
+		t.Errorf("iam:CreatePolicy not denied: %s", got)
 	}
 	// A stack named p-app creates policies named p-app-Policy-…; the boundary must not freeze them.
 	if strings.Contains(got, `policy/p*"`) {

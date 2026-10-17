@@ -163,7 +163,7 @@ except:
 - creating a role without this boundary, and attaching or adding policies to,
   or changing the trust policy of, a role without it
 - removing a permissions boundary
-- editing the boundary or the `<policy-name>*` policies
+- creating or editing the boundary or the `<policy-name>*` policies
 - IAM users, their access keys and passwords, and group grants
 - changing `cdk-*` roles, the execution role included
 
@@ -191,6 +191,8 @@ account and region shares, so every one of those apps needs this setting.
   the execution role can still pass theirs, and `check` reports a missing one.
 - A resource type with no known permissions is an error instead of
   `<service>:*`.
+- `apply` stops if the policy already has an action such as `*` or `iam:*`,
+  which would allow `iam:PassRole` and `iam:CreateRole` on every role.
 - Inputs must be `cdk.out` directories, because the stack names are needed. A
   template file is an error.
 
