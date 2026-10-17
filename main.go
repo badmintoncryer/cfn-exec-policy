@@ -240,6 +240,10 @@ func runApply(args []string) error {
 			strict.Roles = mergeRoles(strict.Roles, haveRoles)
 		}
 	}
+	if ws := Wildcards(actions); strict != nil && len(ws) > 0 {
+		return fmt.Errorf("--strict: %s in %s would grant iam:PassRole and iam:CreateRole on every role; "+
+			"remove it from the policy, or re-run with --prune", strings.Join(ws, ", "), *c.policyName)
+	}
 	docs := Documents(Compact(actions), strict)
 	// Parts that are no longer needed stay attached to the exec role until it is
 	// re-bootstrapped, so empty them rather than leave their old grants in place.
