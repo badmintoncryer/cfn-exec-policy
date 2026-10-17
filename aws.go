@@ -131,34 +131,40 @@ func policyNames(base string, n int) []string {
 	return out
 }
 
-// existingActions reads the Allow actions of base, base-2, … until one is missing.
+// existingActions reads the Allow actions of base, base-2, … until one is missing,
+// and the roles their iam:PassRole statements are scoped to (--strict).
 // parts is how many of them exist (0 when base itself does not).
-func (c *awsClients) existingActions(ctx context.Context, base string) (actions []string, parts int, err error) {
+func (c *awsClients) existingActions(ctx context.Context, base string) (actions, roles []string, parts int, err error) {
 	for i := 1; ; i++ {
 		name := policyNames(base, i)[i-1]
 		p, err := c.iam.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(c.policyArn(name))})
 		var nse *iamtypes.NoSuchEntityException
 		if errors.As(err, &nse) {
-			return actions, i - 1, nil
+			return actions, roles, i - 1, nil
 		}
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
 		}
 		v, err := c.iam.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
 			PolicyArn: p.Policy.Arn, VersionId: p.Policy.DefaultVersionId,
 		})
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
 		}
 		doc, err := url.QueryUnescape(aws.ToString(v.PolicyVersion.Document))
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
 		}
 		as, err := AllowedActions([]byte(doc))
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
+		}
+		rs, err := PassRoleResources([]byte(doc))
+		if err != nil {
+			return nil, nil, 0, err
 		}
 		actions = append(actions, as...)
+		roles = append(roles, rs...)
 	}
 }
 

@@ -346,8 +346,8 @@ func Documents(actions []string, strict *Strict) []PolicyDocument {
 	return docs
 }
 
-// AllowedActions extracts Allow actions from a policy document.
-func AllowedActions(doc []byte) ([]string, error) {
+// statements returns the statements of a policy document (a list or a single one).
+func statements(doc []byte) ([]map[string]any, error) {
 	var d struct {
 		Statement json.RawMessage `json:"Statement"`
 	}
@@ -362,22 +362,38 @@ func AllowedActions(doc []byte) ([]string, error) {
 		}
 		stmts = []map[string]any{one}
 	}
+	return stmts, nil
+}
+
+// stringList returns a string or list-of-strings policy element as a list.
+func stringList(v any) []string {
+	switch v := v.(type) {
+	case string:
+		return []string{v}
+	case []any:
+		var out []string
+		for _, x := range v {
+			if str, ok := x.(string); ok {
+				out = append(out, str)
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+// AllowedActions extracts Allow actions from a policy document.
+func AllowedActions(doc []byte) ([]string, error) {
+	stmts, err := statements(doc)
+	if err != nil {
+		return nil, err
+	}
 	var out []string
 	for _, s := range stmts {
 		if s["Effect"] != "Allow" {
 			continue
 		}
-		var as []string
-		switch a := s["Action"].(type) {
-		case string:
-			as = []string{a}
-		case []any:
-			for _, x := range a {
-				if str, ok := x.(string); ok {
-					as = append(as, str)
-				}
-			}
-		}
+		as := stringList(s["Action"])
 		if services := passedTo(s); services != nil && len(as) == 1 && as[0] == "iam:PassRole" {
 			for _, svc := range services {
 				out = append(out, passRole+svc)
@@ -396,16 +412,27 @@ func passedTo(s map[string]any) []string {
 	if len(cond) != 1 || len(eq) != 1 {
 		return nil
 	}
+	return stringList(eq["iam:PassedToService"])
+}
+
+// PassRoleResources returns the role ARN patterns the iam:PassRole statements --strict
+// writes are scoped to, so apply can keep the ones other apps need.
+func PassRoleResources(doc []byte) ([]string, error) {
+	stmts, err := statements(doc)
+	if err != nil {
+		return nil, err
+	}
 	var out []string
-	switch v := eq["iam:PassedToService"].(type) {
-	case string:
-		out = []string{v}
-	case []any:
-		for _, x := range v {
-			if str, ok := x.(string); ok {
-				out = append(out, str)
+	for _, s := range stmts {
+		as := stringList(s["Action"])
+		if s["Effect"] != "Allow" || len(as) != 1 || as[0] != "iam:PassRole" {
+			continue
+		}
+		for _, r := range stringList(s["Resource"]) {
+			if r != "*" && !contains(out, r) {
+				out = append(out, r)
 			}
 		}
 	}
-	return out
+	return out, nil
 }
