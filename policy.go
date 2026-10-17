@@ -165,23 +165,14 @@ type PolicyDocument struct {
 // while creating, updating and deleting the type on bench, plus iam:PassRole where
 // the type takes a role ARN (CloudTrail never shows it). An empty row means the
 // type needs nothing. Authorization-only checks never show up in CloudTrail either
-// (EC2 tag-on-create needs ec2:CreateTags); the verify pass catches those. Dynamic references are left out: RequiredActions adds
-// those from the template. Tag actions for MediaLive::InputSecurityGroup come from
-// the IAM docs (bench templates did not change tags in place). Measured 2026-10-06 (#5).
+// (EC2 tag-on-create needs ec2:CreateTags); the verify pass catches those. Dynamic
+// references are left out: RequiredActions adds those from the template. Measured
+// 2026-10-06 (#5).
 var handWritten = map[string][]string{
 	"AWS::CloudFormation::WaitConditionHandle": {},
 	"AWS::CodeBuild::Project":                  {"codebuild:CreateProject", "codebuild:DeleteProject", "codebuild:UpdateProject", "iam:PassRole"},
 	"AWS::IAM::UserToGroupAddition":            {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
-	// The plan creates the scaling policies and alarms with the caller's credentials (the
-	// autoscaling/cloudwatch actions, from the verify pass's errors and CloudTrail AccessDenied). Measured with an EC2
-	// Auto Scaling group only; other namespaces would also need application-autoscaling.
-	// The first plan creates the AutoScalingPlans service-linked role; bench already had it
-	// after measuring, so iam:CreateServiceLinkedRole comes from the service docs.
-	"AWS::AutoScalingPlans::ScalingPlan": {"autoscaling-plans:CreateScalingPlan", "autoscaling-plans:DeleteScalingPlan",
-		"autoscaling-plans:DescribeScalingPlans", "autoscaling-plans:UpdateScalingPlan", "autoscaling:DeletePolicy",
-		"autoscaling:DescribeAutoScalingGroups", "autoscaling:DescribePolicies", "autoscaling:PutScalingPolicy", "autoscaling:UpdateAutoScalingGroup",
-		"cloudwatch:DeleteAlarms", "cloudwatch:DescribeAlarms", "cloudwatch:PutMetricAlarm", "iam:CreateServiceLinkedRole"},
-	"AWS::CloudFormation::Macro": {"iam:PassRole"},
+	"AWS::CloudFormation::Macro":               {"iam:PassRole"},
 	"AWS::DocDB::DBCluster": {"rds:AddTagsToResource", "rds:CreateDBCluster", "rds:DeleteDBCluster",
 		"rds:DescribeDBClusters", "rds:ModifyDBCluster", "rds:RemoveTagsFromResource"},
 	"AWS::ElasticLoadBalancingV2::ListenerCertificate": {"elasticloadbalancing:AddListenerCertificates", "elasticloadbalancing:RemoveListenerCertificates"},
@@ -197,12 +188,11 @@ var handWritten = map[string][]string{
 		"medialive:DeleteTags", "medialive:DescribeChannel", "medialive:UpdateChannel"},
 	"AWS::MediaLive::Input": {"iam:PassRole", "medialive:CreateInput", "medialive:CreateTags", "medialive:DeleteInput",
 		"medialive:DeleteTags", "medialive:DescribeInput", "medialive:UpdateInput"},
-	"AWS::MediaLive::InputSecurityGroup": {"medialive:CreateInputSecurityGroup", "medialive:CreateTags", "medialive:DeleteInputSecurityGroup", "medialive:DeleteTags"},
 	"AWS::CloudFormation::WaitCondition": {},
 	"AWS::EC2::ClientVpnEndpoint":        {"ec2:CreateClientVpnEndpoint", "ec2:CreateTags", "ec2:DeleteClientVpnEndpoint", "ec2:DeleteTags", "ec2:DescribeClientVpnEndpoints"},
 	"AWS::Route53::RecordSetGroup":       {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
 	// Hourly-billed types (#9), measured 2026-10-08. Tag actions not exercised on bench
-	// come from the IAM docs, as above.
+	// come from the IAM docs.
 	"AWS::DAX::Cluster": {"dax:CreateCluster", "dax:DeleteCluster", "dax:DescribeClusters", "dax:ListTags",
 		"dax:TagResource", "dax:UntagResource", "dax:UpdateCluster", "iam:PassRole"},
 	"AWS::DocDB::DBInstance": {"rds:AddTagsToResource", "rds:CreateDBInstance", "rds:DeleteDBInstance",
