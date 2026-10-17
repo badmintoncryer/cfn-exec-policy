@@ -392,6 +392,18 @@ func TestPassRoleScope(t *testing.T) {
 	if roles, _, _ := PassRoleScope([]*Template{long}); roles[0] != "arn:*:iam::*:role/"+strings.Repeat("a", 25)+"*" {
 		t.Errorf("long stack name: %v", roles)
 	}
+	// A name that is all parameter must warn as well as one with a literal prefix.
+	for _, arn := range []string{
+		`{"Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${RoleName}"}`,
+		`{"Fn::Sub": "arn:aws:iam::1:role/app-${Env}"}`,
+		`{"Fn::Join": ["", ["arn:aws:iam::1:role/", {"Ref": "RoleName"}]]}`,
+	} {
+		tpl, _ := ParseTemplate("p", []byte(`{"Resources":{"F":{"Type":"AWS::Lambda::Function","Properties":{"Role":`+arn+`}}}}`))
+		tpl.StackName = "S"
+		if roles, warnings, _ := PassRoleScope([]*Template{tpl}); len(roles) != 1 || len(warnings) != 1 {
+			t.Errorf("%s: roles %v, warnings %v", arn, roles, warnings)
+		}
+	}
 	bad, err := LoadInputs([]string{"testdata/strict-bad.yaml"})
 	if err != nil {
 		t.Fatal(err)
