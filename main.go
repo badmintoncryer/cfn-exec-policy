@@ -135,6 +135,18 @@ func required(c common, clients *awsClients) ([]string, *Strict, []*Template, er
 	return actions, strict, inputs, nil
 }
 
+// mergeRoles returns the sorted union of two role pattern lists.
+func mergeRoles(a, b []string) []string {
+	out := slices.Clone(a)
+	for _, r := range b {
+		if !slices.Contains(out, r) {
+			out = append(out, r)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
 func boundaryOrDefault(c common) string {
 	if *c.boundary != "" {
 		return *c.boundary
@@ -170,11 +182,11 @@ func runCheck(args []string) error {
 	if err != nil {
 		return err
 	}
-	need, _, _, err := required(c, clients)
+	need, strict, _, err := required(c, clients)
 	if err != nil {
 		return err
 	}
-	have, parts, err := clients.existingActions(ctx, *c.policyName)
+	have, haveRoles, parts, err := clients.existingActions(ctx, *c.policyName)
 	if err != nil {
 		return err
 	}
@@ -185,6 +197,13 @@ func runCheck(args []string) error {
 	for _, a := range need {
 		if !Covered(a, have) {
 			missing = append(missing, a)
+		}
+	}
+	if strict != nil {
+		for _, r := range strict.Roles {
+			if !slices.Contains(haveRoles, r) {
+				missing = append(missing, "iam:PassRole on "+r)
+			}
 		}
 	}
 	if len(missing) > 0 {
@@ -209,14 +228,17 @@ func runApply(args []string) error {
 	if err != nil {
 		return err
 	}
-	have, parts, err := clients.existingActions(ctx, *c.policyName)
+	have, haveRoles, parts, err := clients.existingActions(ctx, *c.policyName)
 	if err != nil {
 		return err
 	}
 	if !*prune {
 		// The exec role is shared by every app bootstrapped in this environment,
-		// so keep what other apps needed.
+		// so keep what other apps needed, including the roles they pass.
 		actions = append(actions, have...)
+		if strict != nil {
+			strict.Roles = mergeRoles(strict.Roles, haveRoles)
+		}
 	}
 	docs := Documents(Compact(actions), strict)
 	// Parts that are no longer needed stay attached to the exec role until it is
@@ -261,7 +283,7 @@ func runDelete(args []string) error {
 	if err != nil {
 		return err
 	}
-	_, parts, err := clients.existingActions(ctx, *policyName)
+	_, _, parts, err := clients.existingActions(ctx, *policyName)
 	if err != nil {
 		return err
 	}

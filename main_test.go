@@ -428,6 +428,25 @@ func TestStrictDocuments(t *testing.T) {
 	}
 }
 
+// apply without --prune keeps the roles other apps sharing the exec role pass.
+func TestPassRoleResourcesKeepOtherApps(t *testing.T) {
+	b, _ := json.Marshal(Documents([]string{"iam:PassRole", "iam:PassRole>lambda.amazonaws.com", "s3:GetObject"},
+		&Strict{Boundary: "b", Roles: []string{"arn:*:iam::*:role/AppB-*"}}))
+	var docs []json.RawMessage
+	json.Unmarshal(b, &docs)
+	have, err := PassRoleResources(docs[0])
+	if err != nil || strings.Join(have, ",") != "arn:*:iam::*:role/AppB-*" {
+		t.Fatalf("got %v %v", have, err)
+	}
+	if got := mergeRoles([]string{"arn:*:iam::*:role/AppA-*"}, have); strings.Join(got, ",") != "arn:*:iam::*:role/AppA-*,arn:*:iam::*:role/AppB-*" {
+		t.Errorf("merged %v", got)
+	}
+	plain, _ := json.Marshal(newDoc(1, []string{"iam:PassRole"}, nil, nil))
+	if got, _ := PassRoleResources(plain); len(got) != 0 {
+		t.Errorf("unscoped iam:PassRole read back as roles: %v", got)
+	}
+}
+
 func TestBoundaryName(t *testing.T) {
 	for in, want := range map[string]string{"b": "b", "arn:aws:iam::111111111111:policy/team/b": "team/b"} {
 		if got, err := boundaryName(in, "111111111111"); got != want || err != nil {

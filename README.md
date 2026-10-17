@@ -186,7 +186,9 @@ account and region shares, so every one of those apps needs this setting.
   (`<stack-name>-*`; a stack name over 25 characters is cut to its first 25),
   roles with a fixed `RoleName`, and role ARNs written in the templates. A
   role it cannot resolve, such as a `RoleName` from a parameter, gets a warning
-  and cannot be passed. Implies `--pass-role-condition`.
+  and cannot be passed. Implies `--pass-role-condition`. Without `--prune`,
+  `apply` keeps the roles already in the policy, so the other apps sharing
+  the execution role can still pass theirs, and `check` reports a missing one.
 - A resource type with no known permissions is an error instead of
   `<service>:*`.
 - Inputs must be `cdk.out` directories, because the stack names are needed. A
@@ -200,7 +202,7 @@ a role your stack creates can still read or delete whatever its own policy
 allows. A role with the boundary can also pass an existing role that has no
 boundary to a service, because `iam:PassRole` has no condition key for
 boundaries; only the execution role's own `iam:PassRole` is narrowed. `check`
-compares actions only and does not notice a widened `Resource` or `Condition`.
+notices a missing action or role, but not a widened `Resource` or `Condition`.
 
 Roles deployed before you turn on `--strict` get the boundary on the next
 deploy, even when that deploy also changes their inline or managed policies
