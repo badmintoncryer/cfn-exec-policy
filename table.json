@@ -1439,6 +1439,42 @@
    "autoscaling:DescribeWarmPool",
    "autoscaling:PutWarmPool"
   ],
+  "AWS::AutoScalingPlans::ScalingPlan": [
+   "application-autoscaling:DeleteScalingPolicy",
+   "application-autoscaling:DeregisterScalableTarget",
+   "application-autoscaling:DescribeScalingPolicies",
+   "application-autoscaling:PutScalingPolicy",
+   "application-autoscaling:RegisterScalableTarget",
+   "autoscaling-plans:CreateScalingPlan",
+   "autoscaling-plans:DeleteScalingPlan",
+   "autoscaling-plans:DescribeScalingPlanResources",
+   "autoscaling-plans:DescribeScalingPlans",
+   "autoscaling-plans:UpdateScalingPlan",
+   "autoscaling:BatchDeleteScheduledAction",
+   "autoscaling:BatchPutScheduledUpdateGroupAction",
+   "autoscaling:DeletePolicy",
+   "autoscaling:DescribeAutoScalingGroups",
+   "autoscaling:DescribePolicies",
+   "autoscaling:DescribeScheduledActions",
+   "autoscaling:PutScalingPolicy",
+   "autoscaling:UpdateAutoScalingGroup",
+   "cloudwatch:DeleteAlarms",
+   "cloudwatch:DescribeAlarms",
+   "cloudwatch:GetMetricData",
+   "cloudwatch:PutMetricAlarm",
+   "dynamodb:DescribeTable",
+   "dynamodb:UpdateTable",
+   "ec2:DescribeSpotFleetRequests",
+   "ec2:ModifySpotFleetRequest",
+   "ecs:DescribeServices",
+   "ecs:UpdateService",
+   "iam:CreateServiceLinkedRole",
+   "rds:AddTagsToResource",
+   "rds:CreateDBInstance",
+   "rds:DeleteDBInstance",
+   "rds:DescribeDBClusters",
+   "rds:DescribeDBInstances"
+  ],
   "AWS::B2BI::Capability": [
    "b2bi:CreateCapability",
    "b2bi:DeleteCapability",
@@ -3827,6 +3863,7 @@
    "cognito-idp:CreateTerms",
    "cognito-idp:DeleteTerms",
    "cognito-idp:DescribeTerms",
+   "cognito-idp:DescribeTermsByClient",
    "cognito-idp:UpdateTerms"
   ],
   "AWS::Cognito::UserPool": [
@@ -9389,6 +9426,7 @@
    "healthlake:ListTagsForResource",
    "healthlake:TagResource",
    "healthlake:UntagResource",
+   "healthlake:UpdateFHIRDatastore",
    "iam:CreateServiceLinkedRole",
    "iam:GetRole",
    "iam:PassRole",
@@ -12554,6 +12592,15 @@
    "medialive:GetEventBridgeRuleTemplateGroup",
    "medialive:UpdateEventBridgeRuleTemplateGroup"
   ],
+  "AWS::MediaLive::InputSecurityGroup": [
+   "medialive:CreateInputSecurityGroup",
+   "medialive:CreateTags",
+   "medialive:DeleteInputSecurityGroup",
+   "medialive:DeleteTags",
+   "medialive:DescribeInputSecurityGroup",
+   "medialive:ListTagsForResource",
+   "medialive:UpdateInputSecurityGroup"
+  ],
   "AWS::MediaLive::Multiplex": [
    "medialive:CreateMultiplex",
    "medialive:CreateTags",
@@ -13045,12 +13092,17 @@
    "network-firewall:UpdateContainerAssociation"
   ],
   "AWS::NetworkFirewall::Firewall": [
+   "ec2:AttachApplianceToNatGateway",
+   "ec2:CreateNetworkInterfacePermission",
    "ec2:CreateVpcEndpoint",
+   "ec2:DeleteNetworkInterfacePermission",
    "ec2:DeleteVpcEndpoints",
+   "ec2:DescribeNatGateways",
    "ec2:DescribeRouteTables",
    "ec2:DescribeSubnets",
    "ec2:DescribeVpcEndpoints",
    "ec2:DescribeVpcs",
+   "ec2:DetachApplianceFromNatGateway",
    "iam:CreateServiceLinkedRole",
    "logs:DescribeLogGroups",
    "logs:DescribeResourcePolicies",
@@ -13074,6 +13126,7 @@
    "network-firewall:UpdateFirewallDeleteProtection",
    "network-firewall:UpdateFirewallDescription",
    "network-firewall:UpdateFirewallPolicyChangeProtection",
+   "network-firewall:UpdateProxySettings",
    "network-firewall:UpdateSubnetChangeProtection"
   ],
   "AWS::NetworkFirewall::FirewallPolicy": [
@@ -17552,6 +17605,21 @@
    "sagemaker:ListTags",
    "sagemaker:UpdateCodeRepository"
   ],
+  "AWS::SageMaker::ComputeQuota": [
+   "eks:AssociateAccessPolicy",
+   "eks:DescribeAccessEntry",
+   "eks:DescribeCluster",
+   "eks:DisassociateAccessPolicy",
+   "eks:ListAssociatedAccessPolicies",
+   "sagemaker:AddTags",
+   "sagemaker:CreateComputeQuota",
+   "sagemaker:DeleteComputeQuota",
+   "sagemaker:DeleteTags",
+   "sagemaker:DescribeCluster",
+   "sagemaker:DescribeComputeQuota",
+   "sagemaker:ListTags",
+   "sagemaker:UpdateComputeQuota"
+  ],
   "AWS::SageMaker::Context": [
    "sagemaker:AddTags",
    "sagemaker:CreateContext",
@@ -18136,6 +18204,12 @@
    "securityagent:TagResource",
    "securityagent:UntagResource",
    "securityagent:UpdateTargetDomain"
+  ],
+  "AWS::SecurityHub::ActionTarget": [
+   "securityhub:CreateActionTarget",
+   "securityhub:DeleteActionTarget",
+   "securityhub:DescribeActionTargets",
+   "securityhub:UpdateActionTarget"
   ],
   "AWS::SecurityHub::AggregatorV2": [
    "securityhub:CreateAggregatorV2",
@@ -20024,6 +20098,7 @@
   "AWS::Athena": "athena",
   "AWS::AuditManager": "auditmanager",
   "AWS::AutoScaling": "autoscaling",
+  "AWS::AutoScalingPlans": "autoscaling",
   "AWS::B2BI": "b2bi",
   "AWS::BCM": "bcm-dashboards",
   "AWS::BCMDataExports": "bcm-data-exports",
