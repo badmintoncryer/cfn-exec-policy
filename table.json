@@ -19127,8 +19127,16 @@
    "vpc-lattice:GetResourceConfiguration"
   ],
   "AWS::Transfer::HostKey": [
+   "iam:CreateServiceLinkedRole",
+   "kms:Decrypt",
+   "kms:GenerateDataKey",
+   "secretsmanager:CreateSecret",
+   "secretsmanager:DeleteSecret",
+   "secretsmanager:GetSecretValue",
+   "secretsmanager:UpdateSecret",
    "transfer:DeleteHostKey",
    "transfer:DescribeHostKey",
+   "transfer:ExportHostKey",
    "transfer:ImportHostKey",
    "transfer:ListTagsForResource",
    "transfer:TagResource",
