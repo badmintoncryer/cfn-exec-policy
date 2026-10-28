@@ -62,6 +62,32 @@ latest CloudFormation schemas instead of the embedded table),
 `--pass-role-condition` (see below), `--strict` and `--boundary` (see
 [`--strict`](#--strict)), `apply --prune`, `delete --yes`.
 
+## At `cdk synth`
+
+The npm package also has a CDK
+[validation plugin](https://docs.aws.amazon.com/cdk/v2/guide/policy-validation-synthesis.html)
+that runs `generate` at every `cdk synth` and reports, at the construct, what
+the policy would have to guess:
+
+```ts
+import { ExecPolicy } from 'cfn-exec-policy';
+
+const app = new App();
+// ... your stacks
+ExecPolicy.apply(app, { strict: true });
+```
+
+- Types without handler permissions (granted `<service>:*`) and unknown types
+  are warnings; `failOnGuess: true` makes them errors.
+- `strict: true` fails the synth on what `--strict` rejects: a role without
+  the permissions boundary, or permissions granted to IAM users. `boundary`
+  names your own boundary.
+- `args`: more flags, e.g. `['--pass-role-condition']`.
+
+`ExecPolicy.apply` needs an aws-cdk-lib with `Validations`; on older versions
+pass `new ExecPolicyValidation({ ... })` in
+`new App({ policyValidationBeta1: [...] })`. It needs no AWS credentials.
+
 ## Permissions to run it
 
 These are the permissions of whoever runs `check`, `apply` or `delete` (your
