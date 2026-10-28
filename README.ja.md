@@ -42,12 +42,77 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 |---|---|---|
 | `generate [入力]` | ポリシーのJSONを表示する | 不要 |
 | `check [入力]` | テンプレートに要る権限が管理ポリシーに足りなければ、終了コード1で終わる。`cdk deploy`の前にCIで実行する。ポリシーは名前で読むだけで、実行ロールに付いているかまでは確かめない | 要（読み取りのみ） |
+| `diff --base <パス> [入力]` | 別の`cdk.out`（またはテンプレート）、たとえば`main`からsynthしたものと比べて、変更で増える権限と要らなくなる権限を表示する。[プルリクエストで使う](#プルリクエストで使う)を参照 | 不要 |
 | `apply [入力]` | 管理ポリシーを作成または更新し、`cdk bootstrap`のコマンドを表示する | 要 |
 | `delete` | 管理ポリシーを、分割した分と`--strict`のboundaryも含めて削除する。どれかがまだロールに付いていれば止まる。`--yes`を付けなければ、削除するポリシーを表示するだけ | 要 |
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`、`diff --format`と`diff --fail-on`（後述）。
+
+## プルリクエストで使う
+
+`diff`は、変更で実行ロールの権限がどう変わるかをレビューする人に見せます。2つの`cdk.out`から計算するので、AWSの認証情報は要りません。
+
+```sh
+npx cfn-exec-policy diff --base cdk.out.main cdk.out
+```
+
+```
+execution policy: +9 actions · -13 no longer needed
+
++ AWS::AppMesh::Mesh (new)
+    ! grants every action of the service: the type has no measured permissions
+    appmesh:*
+
++ AWS::SQS::Queue (new)
+    sqs:CreateQueue, sqs:DeleteQueue, sqs:GetQueueAttributes, sqs:GetQueueUrl, sqs:ListQueueTags,
+    sqs:SetQueueAttributes, sqs:TagQueue, sqs:UntagQueue
+
+- AWS::SNS::Topic (removed)
+    iam:GetRole, sns:CreateTopic, sns:DeleteTopic, ...
+
+13 actions no longer needed; `apply` keeps them unless --prune
+```
+
+ベース側に要る権限のどれにも含まれないアクションを「増える権限」とし、それを要るリソース型ごとに並べます。`!`は特に確かめたい追加です。権限を測っていない型の`<サービス>:*`、`iam:PassedToService`の条件がない`iam:PassRole`、そして権限を何も付けられず、デプロイに失敗する未知の型です。`--format md`でプルリクエストのコメントを出力し、`--fail-on wildcard,passrole,unknown`（またはアクションが1つでも増えたら失敗する`any`）で、該当する追加があれば終了コード`3`で終わります。`--pass-role-condition`と`--strict`を付けると、それぞれのフラグで書くポリシーの差分になります。`--strict`では、`iam:PassRole`が新しく届くロールのパターンも表示します。
+
+GitHub Actionsでは、両方をsynthしてからアクションにコメントさせます。
+
+```yaml
+name: exec-policy
+on: pull_request
+permissions: { contents: read, pull-requests: write }
+jobs:
+  exec-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { path: head }
+      - uses: actions/checkout@v7
+        with: { path: base, ref: "${{ github.base_ref }}" }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - run: npm ci && npx cdk synth -q
+        working-directory: head
+      - run: npm ci && npx cdk synth -q
+        working-directory: base
+      - uses: badmintoncryer/cfn-exec-policy@v1
+        with: { base: base/cdk.out, path: head/cdk.out, fail-on: "wildcard,unknown" }
+```
+
+アクションはコメントを1つ投稿し、pushのたびにそれを更新します。同じMarkdownをジョブのサマリーにも書き、`fail-on`に当てはまればジョブを失敗させます。フォークやDependabotからのプルリクエストではトークンが読み取り専用なので、コメントできなかったと警告するだけです。npmパッケージにはまだWindowsのバイナリがないため、LinuxかmacOSのランナーが要ります。
+
+| 入力 | すること |
+|---|---|
+| `path` | プルリクエスト側の`cdk.out`またはテンプレート（空白区切り）。既定は`cdk.out` |
+| `base` | ベースブランチ側の`cdk.out`またはテンプレート。必須 |
+| `fail-on` | フラグと同じ |
+| `args` | ほかのフラグ。たとえば`--pass-role-condition`や`--strict` |
+| `comment` | `false`でコメントしない。既定は`true` |
+| `github-token` | コメントに使うトークン。既定は`github.token` |
+
+`@v1`は1.xの最新リリースを、`@v1.6.0`はそのバージョンを使います。
 
 ## 実行に要る権限
 

@@ -1,0 +1,9 @@
+Resources:
+  Fn:
+    Type: AWS::Lambda::Function
+  Queue:
+    Type: AWS::SQS::Queue
+  Mesh:
+    Type: AWS::AppMesh::Mesh
+  Thing:
+    Type: Third::Party::Thing

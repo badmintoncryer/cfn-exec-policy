@@ -15,10 +15,31 @@ const MaxPolicySize = 6144
 // and delete every resource in the templates, plus warnings for guesses and the types
 // guessed. With passCond, iam:PassRole of a type in passedToService becomes a passRole token.
 func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warnings, guessed []string) {
+	by, warnings, guessed := RequiredActionsBy(tbl, tpls, passCond)
 	set := map[string]bool{}
-	add := func(as ...string) {
+	for _, as := range by {
 		for _, a := range as {
 			set[a] = true
+		}
+	}
+	return sortedKeys(set), warnings, guessed
+}
+
+// dynamicRefs is the source RequiredActionsBy files the template-level reads under:
+// dynamic references and SSM parameter types.
+const dynamicRefs = "dynamic references"
+
+// RequiredActionsBy is RequiredActions with the actions kept apart by what needs
+// them: the resource type, or dynamicRefs.
+func RequiredActionsBy(tbl *Table, tpls []*Template, passCond bool) (by map[string][]string, warnings, guessed []string) {
+	sets := map[string]map[string]bool{}
+	var src string
+	add := func(as ...string) {
+		if sets[src] == nil {
+			sets[src] = map[string]bool{}
+		}
+		for _, a := range as {
+			sets[src][a] = true
 		}
 	}
 	warned := map[string]bool{}
@@ -32,6 +53,7 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warn
 	for _, t := range tpls {
 		for _, r := range t.Resources {
 			var as []string
+			src = r.Type
 			switch {
 			case r.Type == "AWS::CDK::Metadata":
 			case strings.HasPrefix(r.Type, "Custom::") || r.Type == "AWS::CloudFormation::CustomResource":
@@ -74,6 +96,7 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warn
 					"cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet")
 			}
 		}
+		src = dynamicRefs
 		for _, p := range t.Parameters {
 			if strings.HasPrefix(p.Type, "AWS::SSM::Parameter::Value") {
 				add("ssm:GetParameters")
@@ -91,7 +114,11 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warn
 		}
 	}
 	sort.Strings(guessed)
-	return sortedKeys(set), warnings, guessed
+	by = map[string][]string{}
+	for k, set := range sets {
+		by[k] = sortedKeys(set)
+	}
+	return by, warnings, guessed
 }
 
 // Compact merges Describe*/List* actions per service and drops actions covered
