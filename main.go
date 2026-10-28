@@ -65,6 +65,7 @@ type common struct {
 	passCond   *bool
 	strict     *bool
 	boundary   *string
+	regionCond *bool
 }
 
 func newFlags(name string) common {
@@ -76,6 +77,7 @@ func newFlags(name string) common {
 		passCond:   fs.Bool("pass-role-condition", false, "limit iam:PassRole with iam:PassedToService to the services the templates pass roles to"),
 		strict:     fs.Bool("strict", false, "require a permissions boundary on every role and scope iam:PassRole to the stacks' roles (implies --pass-role-condition)"),
 		boundary:   fs.String("boundary", "", "with --strict, your own permissions boundary (policy name or ARN) instead of <policy-name>-boundary"),
+		regionCond: fs.Bool("region-condition", false, "allow the actions only in the regions the stacks deploy to (aws:RequestedRegion), plus us-east-1 for global services"),
 	}
 }
 
@@ -157,14 +159,24 @@ func boundaryOrDefault(c common) string {
 func runGenerate(args []string) error {
 	c := newFlags("generate")
 	c.fs.Parse(args)
-	actions, strict, _, err := required(c, nil)
+	actions, strict, inputs, err := required(c, nil)
 	if err != nil {
 		return err
 	}
 	if strict != nil && *c.boundary == "" {
 		fmt.Fprintf(os.Stderr, "note: `apply --strict` also writes the permissions boundary %s\n", strict.Boundary)
 	}
-	docs := Documents(Compact(actions), strict)
+	var regions []string
+	if *c.regionCond {
+		fallback := os.Getenv("AWS_REGION")
+		if fallback == "" {
+			fallback = os.Getenv("AWS_DEFAULT_REGION")
+		}
+		if regions, err = RequestedRegions(inputs, fallback); err != nil {
+			return err
+		}
+	}
+	docs := DocumentsIn(Compact(actions), strict, regions)
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	if len(docs) == 1 {
@@ -182,14 +194,15 @@ func runCheck(args []string) error {
 	if err != nil {
 		return err
 	}
-	need, strict, _, err := required(c, clients)
+	need, strict, inputs, err := required(c, clients)
 	if err != nil {
 		return err
 	}
-	have, haveRoles, parts, err := clients.existingActions(ctx, *c.policyName)
+	ex, err := clients.existingActions(ctx, *c.policyName)
 	if err != nil {
 		return err
 	}
+	have, haveRoles, parts := ex.actions, ex.roles, ex.parts
 	if parts == 0 {
 		return fmt.Errorf("policy %s not found; run `cfn-exec-policy apply` first", clients.policyArn(*c.policyName))
 	}
@@ -203,6 +216,17 @@ func runCheck(args []string) error {
 		for _, r := range strict.Roles {
 			if !slices.Contains(haveRoles, r) {
 				missing = append(missing, "iam:PassRole on "+r)
+			}
+		}
+	}
+	if *c.regionCond && ex.regions != nil { // nil: the policy is not limited to regions
+		regions, err := RequestedRegions(inputs, clients.cfg.Region)
+		if err != nil {
+			return err
+		}
+		for _, r := range regions {
+			if !slices.Contains(ex.regions, r) {
+				missing = append(missing, "region "+r)
 			}
 		}
 	}
@@ -228,9 +252,27 @@ func runApply(args []string) error {
 	if err != nil {
 		return err
 	}
-	have, haveRoles, parts, err := clients.existingActions(ctx, *c.policyName)
+	ex, err := clients.existingActions(ctx, *c.policyName)
 	if err != nil {
 		return err
+	}
+	have, haveRoles, parts := ex.actions, ex.roles, ex.parts
+	var regions []string
+	switch {
+	case *c.regionCond:
+		if regions, err = RequestedRegions(inputs, clients.cfg.Region); err != nil {
+			return err
+		}
+		if !*prune && parts > 0 && ex.regions == nil {
+			return fmt.Errorf("--region-condition: %s allows its actions in every region, and an app bootstrapped "+
+				"in another region may use it; re-run with --prune if it serves only these stacks", *c.policyName)
+		}
+		if !*prune {
+			regions = mergeRoles(regions, ex.regions)
+		}
+	case ex.regions != nil:
+		fmt.Fprintf(os.Stderr, "warning: %s is limited to %s; without --region-condition it is rewritten for every region\n",
+			*c.policyName, strings.Join(ex.regions, ", "))
 	}
 	if !*prune {
 		// The exec role is shared by every app bootstrapped in this environment,
@@ -244,7 +286,7 @@ func runApply(args []string) error {
 		return fmt.Errorf("--strict: %s in %s would grant iam:PassRole and iam:CreateRole on every role; "+
 			"remove it from the policy, or re-run with --prune", strings.Join(ws, ", "), *c.policyName)
 	}
-	docs := Documents(Compact(actions), strict)
+	docs := DocumentsIn(Compact(actions), strict, regions)
 	// Parts that are no longer needed stay attached to the exec role until it is
 	// re-bootstrapped, so empty them rather than leave their old grants in place.
 	for len(docs) < parts {
@@ -287,10 +329,11 @@ func runDelete(args []string) error {
 	if err != nil {
 		return err
 	}
-	_, _, parts, err := clients.existingActions(ctx, *policyName)
+	ex, err := clients.existingActions(ctx, *policyName)
 	if err != nil {
 		return err
 	}
+	parts := ex.parts
 	names := policyNames(*policyName, parts)
 	// Only the boundary `apply --strict` wrote; one passed with --boundary is not ours.
 	boundary := *policyName + "-boundary"

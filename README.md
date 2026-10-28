@@ -59,7 +59,7 @@ stacks and Stages) or CloudFormation templates (JSON or YAML).
 
 Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
-`--pass-role-condition` (see below), `--strict` and `--boundary` (see
+`--pass-role-condition` and `--region-condition` (see below), `--strict` and `--boundary` (see
 [`--strict`](#--strict)), `apply --prune`, `delete --yes`.
 
 ## Permissions to run it
@@ -141,6 +141,16 @@ permissions, so updates, replacements, rollbacks and deletes all work.
   EventBridge rules, ECS, S3 replication, API Gateway). If another type in the
   templates passes a role, `iam:PassRole` stays unconditioned and a warning
   names the type.
+- The actions are allowed in every region. `--region-condition` adds an
+  `aws:RequestedRegion` condition with the regions of your stacks (from
+  `cdk.out`; env-agnostic stacks and template files use `AWS_REGION`, or the
+  CLI's region for `check` and `apply`) plus `us-east-1`, where IAM,
+  CloudFront, Route 53 and other global services take requests. The policy is
+  shared by every region of the account, so `apply` keeps the regions already
+  in it, and stops if the policy has no region condition yet (another region's
+  bootstrap may use it) unless you pass `--prune`. `check` reports a missing
+  region. Not yet checked on a real account: a resource that calls another
+  region (other than `us-east-1`) fails to deploy.
 - `Describe*` / `List*` actions of a service are merged into wildcards to stay
   under the size limit.
 - Policies over IAM's 6,144-character limit are split into
