@@ -156,15 +156,30 @@ func boundaryOrDefault(c common) string {
 
 func runGenerate(args []string) error {
 	c := newFlags("generate")
+	format := c.fs.String("format", "json", "json (the policy documents), terraform (aws_iam_policy resources) or cdk (a TypeScript function with ManagedPolicy)")
 	c.fs.Parse(args)
+	if *format != "json" && *format != "terraform" && *format != "cdk" {
+		return fmt.Errorf("--format must be json, terraform or cdk")
+	}
 	actions, strict, _, err := required(c, nil)
 	if err != nil {
 		return err
 	}
 	if strict != nil && *c.boundary == "" {
 		fmt.Fprintf(os.Stderr, "note: `apply --strict` also writes the permissions boundary %s\n", strict.Boundary)
+		if *format != "json" {
+			fmt.Fprintf(os.Stderr, "note: --format %s does not include it; manage your own and pass it with --boundary\n", *format)
+		}
 	}
 	docs := Documents(Compact(actions), strict)
+	switch *format {
+	case "terraform":
+		WriteTerraform(os.Stdout, policyNames(*c.policyName, len(docs)), docs)
+		return nil
+	case "cdk":
+		WriteCDK(os.Stdout, policyNames(*c.policyName, len(docs)), docs)
+		return nil
+	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	if len(docs) == 1 {
