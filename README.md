@@ -127,8 +127,7 @@ jobs:
 The action posts one comment and updates it on every push, writes the same
 Markdown to the job summary, and fails the job when `fail-on` matches. On pull
 requests from forks and Dependabot the token is read-only, so it only warns
-that it could not comment. It needs a Linux or macOS runner: the npm packages
-have no Windows binary yet.
+that it could not comment.
 
 | Input | What it does |
 |---|---|
