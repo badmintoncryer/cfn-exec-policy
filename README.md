@@ -60,7 +60,27 @@ stacks and Stages) or CloudFormation templates (JSON or YAML).
 Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
 `--pass-role-condition` (see below), `--strict` and `--boundary` (see
-[`--strict`](#--strict)), `apply --prune`, `delete --yes`.
+[`--strict`](#--strict)), `apply --prune`, `delete --yes`, and
+`check --validate` / `check --no-new-access` (see
+[IAM Access Analyzer](#iam-access-analyzer)).
+
+### IAM Access Analyzer
+
+- `check --validate` runs the policy the templates need (and, with `--strict`,
+  the boundary `apply` would write) through Access Analyzer
+  [`ValidatePolicy`](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_ValidatePolicy.html)
+  and prints every finding. Errors and security warnings fail the check.
+- `check --no-new-access` asks Access Analyzer
+  [`CheckNoNewAccess`](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_CheckNoNewAccess.html)
+  whether each deployed part of the policy grants anything beyond what the
+  templates need, including a widened `Resource` or a dropped `Condition`
+  that the plain `check` can't see. It fails when one does. In a bootstrap
+  shared by several apps, the other apps' actions show up here too, so run it
+  with the inputs of all of them.
+
+Both are extra API calls, and Access Analyzer's custom policy checks are
+[charged per call](https://aws.amazon.com/iam/access-analyzer/pricing/)
+(`ValidatePolicy` is free).
 
 ## Permissions to run it
 
@@ -71,6 +91,8 @@ CLI or CI credentials), not of the execution role.
 |---|---|
 | `check`, `apply` | `cloudformation:GetTemplate`, `cloudformation:ListStackResources` (deployed templates and nested stacks), `iam:GetPolicy`, `iam:GetPolicyVersion` |
 | `apply` only | `cloudformation:DescribeStackResources` (finds the bootstrap stack for the printed command), `iam:CreatePolicy`, `iam:CreatePolicyVersion`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion` (deletes the oldest non-default version when the policy already has 5) |
+| `check --validate` | `access-analyzer:ValidatePolicy` |
+| `check --no-new-access` | `access-analyzer:CheckNoNewAccess` |
 | `delete` | `cloudformation:DescribeStackResources`, `iam:GetPolicy`, `iam:GetPolicyVersion`, `iam:ListEntitiesForPolicy`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion`, `iam:DeletePolicy` |
 
 `sts:GetCallerIdentity` is also called, but it needs no permission.
@@ -205,7 +227,8 @@ a role your stack creates can still read or delete whatever its own policy
 allows. A role with the boundary can also pass an existing role that has no
 boundary to a service, because `iam:PassRole` has no condition key for
 boundaries; only the execution role's own `iam:PassRole` is narrowed. `check`
-notices a missing action or role, but not a widened `Resource` or `Condition`.
+notices a missing action or role, but not a widened `Resource` or `Condition`;
+`check --no-new-access` does.
 
 Roles deployed before you turn on `--strict` get the boundary on the next
 deploy, even when that deploy also changes their inline or managed policies
