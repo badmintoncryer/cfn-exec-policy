@@ -580,3 +580,43 @@ func TestBootstrapFlags(t *testing.T) {
 		}
 	}
 }
+
+func TestExplain(t *testing.T) {
+	tbl, err := LoadTable(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tpls, err := LoadInputs([]string{"testdata/cdk.out"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := Explain(tbl, tpls, false)
+	actions, _, _ := RequiredActions(tbl, tpls, false)
+	if len(by) != len(actions) {
+		t.Errorf("%d actions explained, %d required", len(by), len(actions))
+	}
+	for action, src := range map[string]string{
+		"s3:CreateBucket": srcSchema, "lambda:InvokeFunction": srcCustom, "greengrass:*": srcFallback,
+		"ssm:GetParameters": srcSSMParam, "secretsmanager:GetSecretValue": srcDynamic, "cloudformation:CreateChangeSet": srcNested,
+	} {
+		found := false
+		for _, w := range by[action] {
+			found = found || w.Source == src
+		}
+		if !found {
+			t.Errorf("%s: %v, want a %q source", action, by[action], src)
+		}
+	}
+	var b bytes.Buffer
+	WriteExplain(&b, by)
+	if !strings.Contains(b.String(), "s3:CreateBucket\n  schema handlers: AWS::S3::Bucket ") {
+		t.Errorf("text:\n%s", b.String())
+	}
+	b.Reset()
+	if err := WriteExplainJSON(&b, map[string][]Why{passRole + "lambda.amazonaws.com": {{Source: srcSchema, Type: "AWS::Lambda::Function", LogicalID: "Fn", Template: "App"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), `"action": "iam:PassRole (to lambda.amazonaws.com)"`) {
+		t.Errorf("json:\n%s", b.String())
+	}
+}

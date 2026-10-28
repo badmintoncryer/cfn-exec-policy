@@ -49,7 +49,7 @@ something, so the deploy fails fast instead of mid-rollout. Re-run
 
 | Command | What it does | Needs AWS credentials |
 |---|---|---|
-| `generate [inputs]` | Print the policy document(s) | no |
+| `generate [inputs]` | Print the policy document(s). With `--explain`, print instead, per action, the resources that need it and why: schema handlers, a hand-written (measured) row, the `<service>:*` fallback, a custom resource, a nested stack, an SSM parameter type or a dynamic reference. `--format json` for other tools | no |
 | `check [inputs]` | Exit 1 if the managed policy is missing actions your templates need — put it in CI before `cdk deploy`. It reads the policy by name; it does not verify the exec role has it attached | yes (read-only) |
 | `apply [inputs]` | Create or update the managed policy, print the `cdk bootstrap` command | yes |
 | `delete` | Delete the managed policy, its split parts and the `--strict` boundary. Stops if any of them is still attached. Without `--yes`, only prints what it would delete | yes |
