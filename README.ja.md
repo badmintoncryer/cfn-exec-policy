@@ -40,7 +40,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 
 | コマンド | すること | AWSの認証情報 |
 |---|---|---|
-| `generate [入力]` | ポリシーのJSONを表示する | 不要 |
+| `generate [入力]` | ポリシーのJSONを表示する。`--format terraform`で`aws_iam_policy`リソース（パートごとに1つ）を、`--format cdk`で`ManagedPolicy`を作るTypeScriptの関数を出力する。`apply`を使わず、IAMをコードで管理するチーム向け | 不要 |
 | `check [入力]` | テンプレートに要る権限が管理ポリシーに足りなければ、終了コード1で終わる。`cdk deploy`の前にCIで実行する。ポリシーは名前で読むだけで、実行ロールに付いているかまでは確かめない | 要（読み取りのみ） |
 | `apply [入力]` | 管理ポリシーを作成または更新し、`cdk bootstrap`のコマンドを表示する | 要 |
 | `delete` | 管理ポリシーを、分割した分と`--strict`のboundaryも含めて削除する。どれかがまだロールに付いていれば止まる。`--yes`を付けなければ、削除するポリシーを表示するだけ | 要 |
