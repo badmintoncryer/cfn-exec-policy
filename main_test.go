@@ -580,3 +580,52 @@ func TestBootstrapFlags(t *testing.T) {
 		}
 	}
 }
+
+// A cdk.out with a Stage per account: --account keeps that account's stacks,
+// their nested templates and the env-agnostic ones.
+func TestAccount(t *testing.T) {
+	dir := t.TempDir()
+	write := func(p, s string) {
+		os.MkdirAll(filepath.Dir(filepath.Join(dir, p)), 0o755)
+		if err := os.WriteFile(filepath.Join(dir, p), []byte(s), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("manifest.json", `{"artifacts":{
+	  "Shared":{"type":"aws:cloudformation:stack","environment":"aws://unknown-account/unknown-region","properties":{"templateFile":"Shared.template.json"}},
+	  "assembly-Dev":{"type":"cdk:cloud-assembly","properties":{"directoryName":"assembly-Dev"}},
+	  "assembly-Prod":{"type":"cdk:cloud-assembly","properties":{"directoryName":"assembly-Prod"}}}}`)
+	write("Shared.template.json", `{"Resources":{"Q":{"Type":"AWS::SQS::Queue"}}}`)
+	write("assembly-Dev/manifest.json", `{"artifacts":{"DevApp":{"type":"aws:cloudformation:stack","environment":"aws://111111111111/us-east-1","properties":{"templateFile":"DevApp.template.json"}}}}`)
+	write("assembly-Dev/DevApp.template.json", `{"Resources":{"B":{"Type":"AWS::S3::Bucket"}}}`)
+	write("assembly-Dev/DevAppNested.nested.template.json", `{"Resources":{"T":{"Type":"AWS::SNS::Topic"}}}`)
+	write("assembly-Prod/manifest.json", `{"artifacts":{"ProdApp":{"type":"aws:cloudformation:stack","environment":"aws://222222222222/us-east-1","properties":{"templateFile":"ProdApp.template.json"}}}}`)
+	write("assembly-Prod/ProdApp.template.json", `{"Resources":{"D":{"Type":"AWS::DynamoDB::Table"}}}`)
+	tpls, err := LoadInputs([]string{dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(accounts(tpls), ","); got != "111111111111,222222222222" {
+		t.Errorf("accounts = %s", got)
+	}
+	tbl, err := LoadTable(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dev, _, _ := RequiredActions(tbl, inAccount(tpls, "111111111111"), false)
+	for a, want := range map[string]bool{"sqs:CreateQueue": true, "s3:CreateBucket": true, "sns:CreateTopic": true, "dynamodb:CreateTable": false} {
+		if Covered(a, dev) != want {
+			t.Errorf("dev: %s covered = %v, want %v", a, !want, want)
+		}
+	}
+	c := newFlags("generate")
+	c.fs.Parse([]string{"--account", "333333333333", dir})
+	if _, _, _, err := required(c, nil); err == nil || !strings.Contains(err.Error(), "no stack deploys to it") {
+		t.Errorf("err = %v", err)
+	}
+	c = newFlags("check")
+	c.fs.Parse([]string{"--account", "222222222222", dir})
+	if _, _, _, err := required(c, &awsClients{account: "111111111111"}); err == nil || !strings.Contains(err.Error(), "credentials are for account 111111111111") {
+		t.Errorf("err = %v", err)
+	}
+}
