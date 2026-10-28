@@ -156,10 +156,27 @@ func boundaryOrDefault(c common) string {
 
 func runGenerate(args []string) error {
 	c := newFlags("generate")
+	explain := c.fs.Bool("explain", false, "print, per action, the resources that need it and why, instead of the policy")
+	format := c.fs.String("format", "text", "with --explain: text or json")
 	c.fs.Parse(args)
-	actions, strict, _, err := required(c, nil)
+	if *format != "text" && *format != "json" {
+		return fmt.Errorf("--format must be text or json")
+	}
+	actions, strict, inputs, err := required(c, nil)
 	if err != nil {
 		return err
+	}
+	if *explain {
+		tbl, err := LoadTable(*c.refresh)
+		if err != nil {
+			return err
+		}
+		by := Explain(tbl, inputs, *c.passCond || *c.strict)
+		if *format == "json" {
+			return WriteExplainJSON(os.Stdout, by)
+		}
+		WriteExplain(os.Stdout, by)
+		return nil
 	}
 	if strict != nil && *c.boundary == "" {
 		fmt.Fprintf(os.Stderr, "note: `apply --strict` also writes the permissions boundary %s\n", strict.Boundary)

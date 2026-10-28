@@ -138,7 +138,7 @@ func pickPrefix(ns string, counts map[string]int) string {
 var crossCutting = map[string]bool{"iam": true, "kms": true, "ec2": true, "s3": true, "logs": true,
 	"sso": true, "tag": true, "secretsmanager": true, "ssm": true, "cloudwatch": true, "sns": true, "lambda": true}
 
-func sortedKeys(m map[string]bool) []string {
+func sortedKeys[V any](m map[string]V) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
 		out = append(out, k)
