@@ -47,7 +47,18 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`--account`（[複数のアカウント](#複数のアカウント)を参照）、`apply --prune`、`delete --yes`。
+
+### 複数のアカウント
+
+ポリシーは1つのアカウントに置きますが、CDK Pipelinesの`cdk.out`は、複数のアカウントにStageをデプロイすることがよくあります。`--account <id>`を付けると、そのアカウントにデプロイするスタック（と環境を指定しないスタック）だけを使います。アカウントごとに、その認証情報で実行してください。
+
+```sh
+AWS_PROFILE=dev  npx cfn-exec-policy apply --account 111111111111
+AWS_PROFILE=prod npx cfn-exec-policy apply --account 222222222222
+```
+
+`check`と`apply`は、認証情報が別のアカウントのものなら止まります。`--account`がないと、すべてのアカウントのスタックを含むポリシーを作り、警告を出します。ネストスタックのテンプレートは、同じディレクトリのスタックのアカウントに属します。それらが複数のアカウントにまたがる場合は、どのアカウントにも含めます。
 
 ## 実行に要る権限
 

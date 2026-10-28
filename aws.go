@@ -89,7 +89,7 @@ func (c *awsClients) deployedTemplates(ctx context.Context, tpls []*Template) ([
 			continue
 		}
 		if t.Account != "" && t.Account != c.account {
-			fmt.Fprintf(os.Stderr, "warning: %s deploys to account %s, not %s; its deployed template is not read\n", t.StackName, t.Account, c.account)
+			fmt.Fprintf(os.Stderr, "warning: %s deploys to account %s, not %s; its deployed template is not read (see --account)\n", t.StackName, t.Account, c.account)
 			continue
 		}
 		ts, err := c.deployed(ctx, c.cfnIn(t.Region), t.StackName)
