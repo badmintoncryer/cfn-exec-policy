@@ -47,7 +47,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--region-condition`（スタックのリージョンに絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`。
 
 ## 実行に要る権限
 
@@ -97,6 +97,7 @@ CloudFormationは、リソース型ごとにスキーマを公開しています
 - スキーマにハンドラの権限が書かれていないリソース型が、全体の6%ほどあります。実際のアカウントで測った型（`AWS::CodeBuild::Project`、`AWS::LakeFormation::Resource`、`AWS::Route53::RecordSetGroup`など）は、手で書いた一覧を使います。それ以外（`AWS::AppMesh::Mesh`など）には`<サービス>:*`と`iam:PassRole`を付けて、警告を出します。進み具合は [#5](https://github.com/badmintoncryer/cfn-exec-policy/issues/5) にあります。
 - カスタムリソースには`lambda:InvokeFunction`と`sns:Publish`を付けます。動的参照とSSMパラメータ型には、それぞれ対応する`ssm`・`secretsmanager`・`kms`の読み取り権限を付けます。
 - `iam:PassRole`は、`iam:PassedToService`の条件を付けずに、`*`に対して許可します（スキーマに書かれている場合と、`<サービス>:*`で補う場合）。`--pass-role-condition`を付けると、テンプレートがロールを渡すサービスだけに絞ります。対象は、実際のアカウントで確かめた型（Lambda、Step Functions、EventBridgeのルール、ECS、S3のレプリケーション、API Gateway）です。ロールを渡すほかの型がテンプレートにあると、`iam:PassRole`は条件なしのまま残り、その型を警告で示します。
+- アクションはすべてのリージョンで許可します。`--region-condition`を付けると、スタックのリージョン（`cdk.out`から読みます。環境を指定しないスタックとテンプレートファイルは`AWS_REGION`、`check`と`apply`ではCLIのリージョン）と`us-east-1`だけを許す`aws:RequestedRegion`の条件を付けます。`us-east-1`は、IAM、CloudFront、Route 53などのグローバルなサービスがリクエストを受けるリージョンです。ポリシーはアカウントの全リージョンで共有されるので、`apply`はポリシーにすでにあるリージョンを残します。ポリシーにまだリージョンの条件がなければ、ほかのリージョンのbootstrapが使っているかもしれないので、`--prune`を付けない限り止まります。足りないリージョンは`check`が示します。実際のアカウントではまだ確かめていません。`us-east-1`以外の別リージョンを呼ぶリソースはデプロイに失敗します。
 - サイズの上限に収めるため、サービスごとの`Describe*` / `List*`はワイルドカードにまとめます。
 - IAMの上限（6,144文字）を超えるポリシーは、`cfn-exec-policy`、`cfn-exec-policy-2`、… に分けます。
 
