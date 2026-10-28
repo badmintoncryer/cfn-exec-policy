@@ -47,7 +47,14 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`、`check --validate`と`check --no-new-access`（[IAM Access Analyzer](#iam-access-analyzer)を参照）。
+
+### IAM Access Analyzer
+
+- `check --validate`は、テンプレートに要るポリシー（`--strict`なら、`apply`が書くboundaryも）をAccess Analyzerの[`ValidatePolicy`](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_ValidatePolicy.html)にかけ、見つかったものをすべて表示します。エラーとセキュリティ警告があれば失敗します。
+- `check --no-new-access`は、Access Analyzerの[`CheckNoNewAccess`](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_CheckNoNewAccess.html)で、デプロイ済みのポリシーの各パートが、テンプレートに要る以上の権限を与えていないかを確かめます。広げられた`Resource`や外された`Condition`など、通常の`check`では見えない差も対象です。与えていれば失敗します。複数のアプリでブートストラップを共有している場合は、ほかのアプリのアクションもここに出るので、全アプリの入力を渡して実行してください。
+
+どちらもAPIの呼び出しが増えます。Access Analyzerのカスタムポリシーチェックは[呼び出しごとに課金](https://aws.amazon.com/iam/access-analyzer/pricing/)されます（`ValidatePolicy`は無料）。
 
 ## 実行に要る権限
 
@@ -56,6 +63,8 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 | コマンド | アクション |
 |---|---|
 | `check`、`apply` | `cloudformation:GetTemplate`、`cloudformation:ListStackResources`（デプロイ済みのテンプレートとネストスタックを読む）、`iam:GetPolicy`、`iam:GetPolicyVersion` |
+| `check --validate` | `access-analyzer:ValidatePolicy` |
+| `check --no-new-access` | `access-analyzer:CheckNoNewAccess` |
 | `apply`のみ | `cloudformation:DescribeStackResources`（表示するコマンドのために、bootstrapのスタックを探す）、`iam:CreatePolicy`、`iam:CreatePolicyVersion`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`（ポリシーの版がすでに5つあるとき、既定でない最も古い版を消す） |
 | `delete` | `cloudformation:DescribeStackResources`、`iam:GetPolicy`、`iam:GetPolicyVersion`、`iam:ListEntitiesForPolicy`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`、`iam:DeletePolicy` |
 
@@ -133,7 +142,7 @@ boundaryは実行ロールに付きます。実行ロールは、同じアカウ
 
 `--boundary <名前またはARN>`を付けると、自分で用意したboundaryを使います。この場合、`apply`はboundaryを書き込みません。
 
-boundaryはIAM以外の操作をすべて許可します。そのため`--strict`を付けても、スタックが作ったロールは、そのロール自身のポリシーが許す範囲でデータを読んだり、リソースを消したりできます。また、boundaryの付いたロールは、boundaryのない既存のロールをサービスに渡せます。`iam:PassRole`には、boundaryを判定する条件キーがないためです。範囲を絞れるのは、実行ロール自身の`iam:PassRole`だけです。`check`は足りないアクションやロールには気づきますが、`Resource`や`Condition`が広げられても気づきません。
+boundaryはIAM以外の操作をすべて許可します。そのため`--strict`を付けても、スタックが作ったロールは、そのロール自身のポリシーが許す範囲でデータを読んだり、リソースを消したりできます。また、boundaryの付いたロールは、boundaryのない既存のロールをサービスに渡せます。`iam:PassRole`には、boundaryを判定する条件キーがないためです。範囲を絞れるのは、実行ロール自身の`iam:PassRole`だけです。`check`は足りないアクションやロールには気づきますが、`Resource`や`Condition`が広げられても気づきません。`check --no-new-access`なら気づきます。
 
 `--strict`を付ける前にデプロイしたロールには、次のデプロイでboundaryが付きます。同じデプロイでインラインポリシーや管理ポリシーを変えても、デプロイは通ります（実際のアカウントで確かめました）。詳しくは[docs/design.md](docs/design.md)を見てください。
 
