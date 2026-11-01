@@ -153,37 +153,51 @@ func policyNames(base string, n int) []string {
 // existingActions reads the Allow actions of base, base-2, … until one is missing,
 // and the roles their iam:PassRole statements are scoped to (--strict).
 // parts is how many of them exist (0 when base itself does not).
-func (c *awsClients) existingActions(ctx context.Context, base string) (actions, roles []string, parts int, err error) {
+// existing is what the managed policy (all its parts) grants today.
+type existing struct {
+	actions, roles []string
+	regions        []string // aws:RequestedRegion values; nil when the policy has no region condition
+	parts          int
+}
+
+func (c *awsClients) existingActions(ctx context.Context, base string) (existing, error) {
+	var ex existing
 	for i := 1; ; i++ {
 		name := policyNames(base, i)[i-1]
 		p, err := c.iam.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(c.policyArn(name))})
 		var nse *iamtypes.NoSuchEntityException
 		if errors.As(err, &nse) {
-			return actions, roles, i - 1, nil
+			ex.parts = i - 1
+			return ex, nil
 		}
 		if err != nil {
-			return nil, nil, 0, err
+			return existing{}, err
 		}
 		v, err := c.iam.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
 			PolicyArn: p.Policy.Arn, VersionId: p.Policy.DefaultVersionId,
 		})
 		if err != nil {
-			return nil, nil, 0, err
+			return existing{}, err
 		}
 		doc, err := url.QueryUnescape(aws.ToString(v.PolicyVersion.Document))
 		if err != nil {
-			return nil, nil, 0, err
+			return existing{}, err
 		}
 		as, err := AllowedActions([]byte(doc))
 		if err != nil {
-			return nil, nil, 0, err
+			return existing{}, err
 		}
 		rs, err := PassRoleResources([]byte(doc))
 		if err != nil {
-			return nil, nil, 0, err
+			return existing{}, err
 		}
-		actions = append(actions, as...)
-		roles = append(roles, rs...)
+		regs, err := DocRegions([]byte(doc))
+		if err != nil {
+			return existing{}, err
+		}
+		ex.actions = append(ex.actions, as...)
+		ex.roles = append(ex.roles, rs...)
+		ex.regions = mergeRoles(ex.regions, regs)
 	}
 }
 
