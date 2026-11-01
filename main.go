@@ -19,6 +19,8 @@ const usage = `cfn-exec-policy — IAM policy for your CloudFormation execution 
 Usage:
   cfn-exec-policy generate [flags] [cdk.out | template ...]   print the policy document(s)
   cfn-exec-policy check    [flags] [cdk.out | template ...]   exit 1 if the deployed policy is missing actions
+  cfn-exec-policy diff     --base <cdk.out> [flags] [cdk.out | template ...]
+                                                              print the permissions a change adds or drops
   cfn-exec-policy apply    [flags] [cdk.out | template ...]   create/update the managed policy and print the bootstrap command
   cfn-exec-policy delete   [--policy-name n] [--yes]          delete the managed policy (dry run without --yes)
   cfn-exec-policy version
@@ -38,6 +40,8 @@ func main() {
 		err = runGenerate(os.Args[2:])
 	case "check":
 		err = runCheck(os.Args[2:])
+	case "diff":
+		err = runDiff(os.Args[2:])
 	case "apply":
 		err = runApply(os.Args[2:])
 	case "delete":
@@ -172,6 +176,75 @@ func runGenerate(args []string) error {
 	}
 	fmt.Fprintf(os.Stderr, "note: %d documents (IAM limit is %d characters each); attach all of them\n", len(docs), MaxPolicySize)
 	return enc.Encode(docs)
+}
+
+func runDiff(args []string) error {
+	c := newFlags("diff")
+	base := c.fs.String("base", "", "cdk.out (or template) to compare against, e.g. synthesized from the base branch")
+	format := c.fs.String("format", "text", "text or md (a pull request comment)")
+	failOn := c.fs.String("fail-on", "", "exit 3 when the change adds: wildcard, passrole, unknown or any (comma-separated)")
+	c.fs.Parse(args)
+	if *base == "" {
+		return usageError("diff needs --base")
+	}
+	if *format != "text" && *format != "md" {
+		return usageError("--format must be text or md")
+	}
+	var fails []string
+	for _, f := range strings.Split(*failOn, ",") {
+		switch f = strings.TrimSpace(f); f {
+		case "":
+		case riskWildcard, riskPassRole, riskUnknown, "any":
+			fails = append(fails, f)
+		default:
+			return usageError("--fail-on: unknown kind " + f)
+		}
+	}
+	tbl, err := LoadTable(*c.refresh)
+	if err != nil {
+		return err
+	}
+	baseTpls, err := LoadInputs([]string{*base})
+	if err != nil {
+		return err
+	}
+	headTpls, err := LoadInputs(c.fs.Args())
+	if err != nil {
+		return err
+	}
+	d := DiffPolicies(tbl, baseTpls, headTpls, *c.passCond || *c.strict)
+	if *c.strict {
+		baseRoles, _, err := PassRoleScope(baseTpls)
+		if err != nil {
+			return err
+		}
+		headRoles, _, err := PassRoleScope(headTpls)
+		if err != nil {
+			return err
+		}
+		for _, r := range headRoles {
+			if !slices.Contains(baseRoles, r) {
+				d.NewRoles = append(d.NewRoles, r)
+			}
+		}
+	}
+	if *format == "md" {
+		d.WriteMarkdown(os.Stdout)
+	} else {
+		d.WriteText(os.Stdout)
+	}
+	if f := d.failed(fails); len(f) > 0 {
+		fmt.Fprintf(os.Stderr, "the change adds %s (--fail-on)\n", strings.Join(f, ", "))
+		os.Exit(3)
+	}
+	return nil
+}
+
+// usageError exits 2, like a bad flag.
+func usageError(msg string) error {
+	fmt.Fprintln(os.Stderr, "error:", msg)
+	os.Exit(2)
+	return nil
 }
 
 func runCheck(args []string) error {
