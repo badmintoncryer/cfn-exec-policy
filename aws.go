@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/accessanalyzer"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	cfntypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
@@ -45,6 +46,7 @@ type awsClients struct {
 	cfn      cfnAPI
 	regional map[string]cfnAPI // other regions' clients, made by cfnIn
 	iam      iamAPI
+	aa       analyzerAPI
 	account  string
 	part     string
 }
@@ -77,7 +79,7 @@ func newClients(ctx context.Context) (*awsClients, error) {
 		return nil, err
 	}
 	return &awsClients{cfg: cfg, cfn: cloudformation.NewFromConfig(cfg), iam: iam.NewFromConfig(cfg),
-		account: aws.ToString(id.Account), part: a.Partition}, nil
+		aa: accessanalyzer.NewFromConfig(cfg), account: aws.ToString(id.Account), part: a.Partition}, nil
 }
 
 // deployedTemplates fetches the processed templates of the stacks that already exist,
@@ -161,43 +163,55 @@ type existing struct {
 }
 
 func (c *awsClients) existingActions(ctx context.Context, base string) (existing, error) {
-	var ex existing
-	for i := 1; ; i++ {
-		name := policyNames(base, i)[i-1]
-		p, err := c.iam.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(c.policyArn(name))})
-		var nse *iamtypes.NoSuchEntityException
-		if errors.As(err, &nse) {
-			ex.parts = i - 1
-			return ex, nil
-		}
+	docs, err := c.existingDocs(ctx, base)
+	if err != nil {
+		return existing{}, err
+	}
+	ex := existing{parts: len(docs)}
+	for _, d := range docs {
+		as, err := AllowedActions([]byte(d.doc))
 		if err != nil {
 			return existing{}, err
 		}
-		v, err := c.iam.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
-			PolicyArn: p.Policy.Arn, VersionId: p.Policy.DefaultVersionId,
-		})
+		rs, err := PassRoleResources([]byte(d.doc))
 		if err != nil {
 			return existing{}, err
 		}
-		doc, err := url.QueryUnescape(aws.ToString(v.PolicyVersion.Document))
-		if err != nil {
-			return existing{}, err
-		}
-		as, err := AllowedActions([]byte(doc))
-		if err != nil {
-			return existing{}, err
-		}
-		rs, err := PassRoleResources([]byte(doc))
-		if err != nil {
-			return existing{}, err
-		}
-		regs, err := DocRegions([]byte(doc))
+		regs, err := DocRegions([]byte(d.doc))
 		if err != nil {
 			return existing{}, err
 		}
 		ex.actions = append(ex.actions, as...)
 		ex.roles = append(ex.roles, rs...)
 		ex.regions = mergeRoles(ex.regions, regs)
+	}
+	return ex, nil
+}
+
+// existingDocs reads the default versions of base, base-2, … until one is missing.
+func (c *awsClients) existingDocs(ctx context.Context, base string) ([]namedDoc, error) {
+	var docs []namedDoc
+	for i := 1; ; i++ {
+		name := policyNames(base, i)[i-1]
+		p, err := c.iam.GetPolicy(ctx, &iam.GetPolicyInput{PolicyArn: aws.String(c.policyArn(name))})
+		var nse *iamtypes.NoSuchEntityException
+		if errors.As(err, &nse) {
+			return docs, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		v, err := c.iam.GetPolicyVersion(ctx, &iam.GetPolicyVersionInput{
+			PolicyArn: p.Policy.Arn, VersionId: p.Policy.DefaultVersionId,
+		})
+		if err != nil {
+			return nil, err
+		}
+		doc, err := url.QueryUnescape(aws.ToString(v.PolicyVersion.Document))
+		if err != nil {
+			return nil, err
+		}
+		docs = append(docs, namedDoc{name, doc})
 	}
 }
 

@@ -261,6 +261,8 @@ func usageError(msg string) error {
 
 func runCheck(args []string) error {
 	c := newFlags("check")
+	validate := c.fs.Bool("validate", false, "also run the policy the templates need (and the boundary) through IAM Access Analyzer ValidatePolicy")
+	noNew := c.fs.Bool("no-new-access", false, "also check with IAM Access Analyzer CheckNoNewAccess that the deployed policy grants nothing beyond what the templates need")
 	c.fs.Parse(args)
 	ctx := context.Background()
 	clients, err := newClients(ctx)
@@ -292,6 +294,7 @@ func runCheck(args []string) error {
 			}
 		}
 	}
+	failed := false
 	if *c.regionCond && ex.regions != nil { // nil: the policy is not limited to regions
 		regions, err := RequestedRegions(inputs, clients.cfg.Region)
 		if err != nil {
@@ -306,9 +309,58 @@ func runCheck(args []string) error {
 	if len(missing) > 0 {
 		fmt.Fprintf(os.Stderr, "%s is missing %d action(s):\n  %s\nrun `cfn-exec-policy apply` to add them\n",
 			*c.policyName, len(missing), strings.Join(missing, "\n  "))
+		failed = true
+	} else {
+		fmt.Fprintf(os.Stderr, "%s* covers all %d required actions\n", *c.policyName, len(need))
+	}
+	if *validate || *noNew {
+		var regions []string // as apply would write them
+		if *c.regionCond {
+			if regions, err = RequestedRegions(inputs, clients.cfg.Region); err != nil {
+				return err
+			}
+		}
+		docs := DocumentsIn(Compact(need), strict, regions)
+		if *validate {
+			var named []namedDoc
+			for i, d := range docs {
+				b, _ := json.Marshal(d)
+				named = append(named, namedDoc{"generated " + policyNames(*c.policyName, len(docs))[i], string(b)})
+			}
+			if strict != nil && *c.boundary == "" {
+				b, _ := json.Marshal(BoundaryDocument(clients.part, clients.account, strict.Boundary, *c.policyName))
+				named = append(named, namedDoc{"generated " + strict.Boundary, string(b)})
+			}
+			bad, err := validatePolicies(ctx, clients.aa, named, os.Stderr)
+			if err != nil {
+				return err
+			}
+			if bad > 0 {
+				fmt.Fprintf(os.Stderr, "Access Analyzer: %d error(s) or security warning(s)\n", bad)
+				failed = true
+			} else {
+				fmt.Fprintln(os.Stderr, "Access Analyzer: no errors or security warnings")
+			}
+		}
+		if *noNew {
+			deployed, err := clients.existingDocs(ctx, *c.policyName)
+			if err != nil {
+				return err
+			}
+			broader, err := noNewAccess(ctx, clients.aa, deployed, merged(docs), os.Stderr)
+			if err != nil {
+				return err
+			}
+			if broader > 0 {
+				failed = true
+			} else {
+				fmt.Fprintf(os.Stderr, "%s* grants nothing beyond what the templates need\n", *c.policyName)
+			}
+		}
+	}
+	if failed {
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "%s* covers all %d required actions\n", *c.policyName, len(need))
 	return nil
 }
 
