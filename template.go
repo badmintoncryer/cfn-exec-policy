@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -115,14 +116,51 @@ func loadAssembly(dir string) ([]*Template, error) {
 	if err != nil {
 		return nil, err
 	}
+	// A nested template takes the account of the stacks next to it, when they
+	// all deploy to one (--account); otherwise it is kept for every account.
+	accounts := map[string]bool{}
+	for _, t := range out {
+		if t.StackName != "" && t.Account != "" {
+			accounts[t.Account] = true
+		}
+	}
 	for _, p := range nested {
 		t, err := loadFile(p)
 		if err != nil {
 			return nil, err
 		}
+		if len(accounts) == 1 {
+			for a := range accounts {
+				t.Account = a
+			}
+		}
 		out = append(out, t)
 	}
 	return out, nil
+}
+
+// inAccount keeps the templates that deploy to account, or to an account the
+// cloud assembly doesn't name.
+func inAccount(tpls []*Template, account string) []*Template {
+	var out []*Template
+	for _, t := range tpls {
+		if t.Account == "" || t.Account == account {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// accounts returns the accounts the templates deploy to, sorted.
+func accounts(tpls []*Template) []string {
+	var out []string
+	for _, t := range tpls {
+		if t.Account != "" && !slices.Contains(out, t.Account) {
+			out = append(out, t.Account)
+		}
+	}
+	slices.Sort(out)
+	return out
 }
 
 // environment splits aws://<account>/<region>, leaving out the unknown-account and

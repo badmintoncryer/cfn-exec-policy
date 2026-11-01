@@ -51,6 +51,7 @@ something, so the deploy fails fast instead of mid-rollout. Re-run
 |---|---|---|
 | `generate [inputs]` | Print the policy document(s). With `--explain`, print instead, per action, the resources that need it and why: schema handlers, a hand-written (measured) row, the `<service>:*` fallback, a custom resource, a nested stack, an SSM parameter type or a dynamic reference. `--format json` for other tools | no |
 | `check [inputs]` | Exit 1 if the managed policy is missing actions your templates need — put it in CI before `cdk deploy`. It reads the policy by name; it does not verify the exec role has it attached | yes (read-only) |
+| `diff --base <path> [inputs]` | Print the permissions a change adds or drops, compared with another `cdk.out` (or template), e.g. one synthesized from `main`. See [In pull requests](#in-pull-requests) | no |
 | `apply [inputs]` | Create or update the managed policy, print the `cdk bootstrap` command | yes |
 | `delete` | Delete the managed policy, its split parts and the `--strict` boundary. Stops if any of them is still attached. Without `--yes`, only prints what it would delete | yes |
 
@@ -59,8 +60,122 @@ stacks and Stages) or CloudFormation templates (JSON or YAML).
 
 Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
-`--pass-role-condition` (see below), `--strict` and `--boundary` (see
-[`--strict`](#--strict)), `apply --prune`, `delete --yes`.
+`--pass-role-condition` and `--region-condition` (see below), `--strict` and `--boundary` (see
+[`--strict`](#--strict)), `--account` (see [Several accounts](#several-accounts)),
+`apply --prune`, `delete --yes`, `diff --format`
+and `diff --fail-on` (see below), and `check --validate` / `check --no-new-access`
+(see [IAM Access Analyzer](#iam-access-analyzer)).
+
+### IAM Access Analyzer
+
+- `check --validate` runs the policy the templates need (and, with `--strict`,
+  the boundary `apply` would write) through Access Analyzer
+  [`ValidatePolicy`](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_ValidatePolicy.html)
+  and prints every finding. Errors and security warnings fail the check.
+- `check --no-new-access` asks Access Analyzer
+  [`CheckNoNewAccess`](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_CheckNoNewAccess.html)
+  whether each deployed part of the policy grants anything beyond what the
+  templates need, including a widened `Resource` or a dropped `Condition`
+  that the plain `check` can't see. It fails when one does. In a bootstrap
+  shared by several apps, the other apps' actions show up here too, so run it
+  with the inputs of all of them.
+
+Both are extra API calls, and Access Analyzer's custom policy checks are
+[charged per call](https://aws.amazon.com/iam/access-analyzer/pricing/)
+(`ValidatePolicy` is free).
+
+### Several accounts
+
+The policy lives in one account, but a `cdk.out` from CDK Pipelines often
+deploys Stages to several. Pass `--account <id>` to use only the stacks that
+deploy to that account (and the env-agnostic ones), and run once per account
+with its credentials:
+
+```sh
+AWS_PROFILE=dev  npx cfn-exec-policy apply --account 111111111111
+AWS_PROFILE=prod npx cfn-exec-policy apply --account 222222222222
+```
+
+`check` and `apply` stop if the credentials are for another account. Without
+`--account`, the policy covers the stacks of every account, with a warning. A
+nested stack template takes the account of the stacks in its directory, or is
+kept for every account when they deploy to more than one.
+
+## In pull requests
+
+`diff` shows reviewers what a change does to the execution role, from two
+`cdk.out` directories and no AWS credentials:
+
+```sh
+npx cfn-exec-policy diff --base cdk.out.main cdk.out
+```
+
+```
+execution policy: +9 actions · -13 no longer needed
+
++ AWS::AppMesh::Mesh (new)
+    ! grants every action of the service: the type has no measured permissions
+    appmesh:*
+
++ AWS::SQS::Queue (new)
+    sqs:CreateQueue, sqs:DeleteQueue, sqs:GetQueueAttributes, sqs:GetQueueUrl, sqs:ListQueueTags,
+    sqs:SetQueueAttributes, sqs:TagQueue, sqs:UntagQueue
+
+- AWS::SNS::Topic (removed)
+    iam:GetRole, sns:CreateTopic, sns:DeleteTopic, ...
+
+13 actions no longer needed; `apply` keeps them unless --prune
+```
+
+An action is added when nothing the base needs covers it, and each one is
+listed under the resource types that need it. `!` marks the additions worth a
+closer look: `<service>:*` for a type with no measured permissions,
+`iam:PassRole` without an `iam:PassedToService` condition, and unknown types,
+which get no permissions and fail to deploy. `--format md` prints a pull
+request comment, and `--fail-on wildcard,passrole,unknown` (or `any`, for any
+added action) exits `3` when the change adds one of them. `--pass-role-condition`
+and `--strict` give the diff of the policy those flags write; with `--strict` it
+also lists the new role patterns `iam:PassRole` reaches.
+
+In GitHub Actions, synthesize both sides and let the action comment:
+
+```yaml
+name: exec-policy
+on: pull_request
+permissions: { contents: read, pull-requests: write }
+jobs:
+  exec-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { path: head }
+      - uses: actions/checkout@v7
+        with: { path: base, ref: "${{ github.base_ref }}" }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - run: npm ci && npx cdk synth -q
+        working-directory: head
+      - run: npm ci && npx cdk synth -q
+        working-directory: base
+      - uses: badmintoncryer/cfn-exec-policy@v1
+        with: { base: base/cdk.out, path: head/cdk.out, fail-on: "wildcard,unknown" }
+```
+
+The action posts one comment and updates it on every push, writes the same
+Markdown to the job summary, and fails the job when `fail-on` matches. On pull
+requests from forks and Dependabot the token is read-only, so it only warns
+that it could not comment.
+
+| Input | What it does |
+|---|---|
+| `path` | `cdk.out` or templates (space-separated) of the pull request. Default `cdk.out`. |
+| `base` | `cdk.out` or template of the base branch. Required. |
+| `fail-on` | Same as the flag. |
+| `args` | More flags, e.g. `--pass-role-condition` or `--strict`. |
+| `comment` | `false` to skip the comment. Default `true`. |
+| `github-token` | Token used to comment. Default `github.token`. |
+
+`@v1` runs the latest 1.x release; `@v1.6.0` pins that version.
 
 ## Permissions to run it
 
@@ -71,6 +186,8 @@ CLI or CI credentials), not of the execution role.
 |---|---|
 | `check`, `apply` | `cloudformation:GetTemplate`, `cloudformation:ListStackResources` (deployed templates and nested stacks), `iam:GetPolicy`, `iam:GetPolicyVersion` |
 | `apply` only | `cloudformation:DescribeStackResources` (finds the bootstrap stack for the printed command), `iam:CreatePolicy`, `iam:CreatePolicyVersion`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion` (deletes the oldest non-default version when the policy already has 5) |
+| `check --validate` | `access-analyzer:ValidatePolicy` |
+| `check --no-new-access` | `access-analyzer:CheckNoNewAccess` |
 | `delete` | `cloudformation:DescribeStackResources`, `iam:GetPolicy`, `iam:GetPolicyVersion`, `iam:ListEntitiesForPolicy`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion`, `iam:DeletePolicy` |
 
 `sts:GetCallerIdentity` is also called, but it needs no permission.
@@ -141,6 +258,16 @@ permissions, so updates, replacements, rollbacks and deletes all work.
   EventBridge rules, ECS, S3 replication, API Gateway). If another type in the
   templates passes a role, `iam:PassRole` stays unconditioned and a warning
   names the type.
+- The actions are allowed in every region. `--region-condition` adds an
+  `aws:RequestedRegion` condition with the regions of your stacks (from
+  `cdk.out`; env-agnostic stacks and template files use `AWS_REGION`, or the
+  CLI's region for `check` and `apply`) plus `us-east-1`, where IAM,
+  CloudFront, Route 53 and other global services take requests. The policy is
+  shared by every region of the account, so `apply` keeps the regions already
+  in it, and stops if the policy has no region condition yet (another region's
+  bootstrap may use it) unless you pass `--prune`. `check` reports a missing
+  region. Not yet checked on a real account: a resource that calls another
+  region (other than `us-east-1`) fails to deploy.
 - `Describe*` / `List*` actions of a service are merged into wildcards to stay
   under the size limit.
 - Policies over IAM's 6,144-character limit are split into
@@ -205,7 +332,8 @@ a role your stack creates can still read or delete whatever its own policy
 allows. A role with the boundary can also pass an existing role that has no
 boundary to a service, because `iam:PassRole` has no condition key for
 boundaries; only the execution role's own `iam:PassRole` is narrowed. `check`
-notices a missing action or role, but not a widened `Resource` or `Condition`.
+notices a missing action or role, but not a widened `Resource` or `Condition`;
+`check --no-new-access` does.
 
 Roles deployed before you turn on `--strict` get the boundary on the next
 deploy, even when that deploy also changes their inline or managed policies
