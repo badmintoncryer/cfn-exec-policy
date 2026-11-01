@@ -61,7 +61,8 @@ stacks and Stages) or CloudFormation templates (JSON or YAML).
 Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
 `--pass-role-condition` and `--region-condition` (see below), `--strict` and `--boundary` (see
-[`--strict`](#--strict)), `apply --prune`, `delete --yes`, `diff --format`
+[`--strict`](#--strict)), `--account` (see [Several accounts](#several-accounts)),
+`apply --prune`, `delete --yes`, `diff --format`
 and `diff --fail-on` (see below), and `check --validate` / `check --no-new-access`
 (see [IAM Access Analyzer](#iam-access-analyzer)).
 
@@ -82,6 +83,23 @@ and `diff --fail-on` (see below), and `check --validate` / `check --no-new-acces
 Both are extra API calls, and Access Analyzer's custom policy checks are
 [charged per call](https://aws.amazon.com/iam/access-analyzer/pricing/)
 (`ValidatePolicy` is free).
+
+### Several accounts
+
+The policy lives in one account, but a `cdk.out` from CDK Pipelines often
+deploys Stages to several. Pass `--account <id>` to use only the stacks that
+deploy to that account (and the env-agnostic ones), and run once per account
+with its credentials:
+
+```sh
+AWS_PROFILE=dev  npx cfn-exec-policy apply --account 111111111111
+AWS_PROFILE=prod npx cfn-exec-policy apply --account 222222222222
+```
+
+`check` and `apply` stop if the credentials are for another account. Without
+`--account`, the policy covers the stacks of every account, with a warning. A
+nested stack template takes the account of the stacks in its directory, or is
+kept for every account when they deploy to more than one.
 
 ## In pull requests
 

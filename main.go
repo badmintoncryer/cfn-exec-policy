@@ -69,6 +69,7 @@ type common struct {
 	passCond   *bool
 	strict     *bool
 	boundary   *string
+	account    *string
 	regionCond *bool
 }
 
@@ -81,6 +82,7 @@ func newFlags(name string) common {
 		passCond:   fs.Bool("pass-role-condition", false, "limit iam:PassRole with iam:PassedToService to the services the templates pass roles to"),
 		strict:     fs.Bool("strict", false, "require a permissions boundary on every role and scope iam:PassRole to the stacks' roles (implies --pass-role-condition)"),
 		boundary:   fs.String("boundary", "", "with --strict, your own permissions boundary (policy name or ARN) instead of <policy-name>-boundary"),
+		account:    fs.String("account", "", "only the stacks that deploy to this account (a cdk.out with several accounts); check and apply need its credentials"),
 		regionCond: fs.Bool("region-condition", false, "allow the actions only in the regions the stacks deploy to (aws:RequestedRegion), plus us-east-1 for global services"),
 	}
 }
@@ -96,6 +98,19 @@ func required(c common, clients *awsClients) ([]string, *Strict, []*Template, er
 	tpls, err := LoadInputs(c.fs.Args())
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	if a := *c.account; a != "" {
+		if clients != nil && clients.account != a {
+			return nil, nil, nil, fmt.Errorf("--account %s, but the credentials are for account %s; use a profile for %s", a, clients.account, a)
+		}
+		all := accounts(tpls)
+		if !slices.Contains(all, a) {
+			return nil, nil, nil, fmt.Errorf("--account %s: no stack deploys to it (the inputs name %s)", a, orNone(all))
+		}
+		tpls = inAccount(tpls, a)
+	} else if all := accounts(tpls); len(all) > 1 {
+		fmt.Fprintf(os.Stderr, "warning: the stacks deploy to accounts %s; the policy covers all of them. "+
+			"Pass --account <id> for the policy of one account\n", strings.Join(all, ", "))
 	}
 	inputs := tpls
 	var strict *Strict
@@ -139,6 +154,13 @@ func required(c common, clients *awsClients) ([]string, *Strict, []*Template, er
 		return nil, nil, nil, fmt.Errorf("--strict:\n  %s", strings.Join(errs, "\n  "))
 	}
 	return actions, strict, inputs, nil
+}
+
+func orNone(xs []string) string {
+	if len(xs) == 0 {
+		return "no account"
+	}
+	return strings.Join(xs, ", ")
 }
 
 // mergeRoles returns the sorted union of two role pattern lists.

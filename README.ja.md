@@ -48,7 +48,7 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--region-condition`（スタックのリージョンに絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`apply --prune`、`delete --yes`、`diff --format`と`diff --fail-on`（後述）、`check --validate`と`check --no-new-access`（[IAM Access Analyzer](#iam-access-analyzer)を参照）。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--region-condition`（スタックのリージョンに絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`--account`（[複数のアカウント](#複数のアカウント)を参照）、`apply --prune`、`delete --yes`、`diff --format`と`diff --fail-on`（後述）、`check --validate`と`check --no-new-access`（[IAM Access Analyzer](#iam-access-analyzer)を参照）。
 
 ### IAM Access Analyzer
 
@@ -56,6 +56,17 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 - `check --no-new-access`は、Access Analyzerの[`CheckNoNewAccess`](https://docs.aws.amazon.com/access-analyzer/latest/APIReference/API_CheckNoNewAccess.html)で、デプロイ済みのポリシーの各パートが、テンプレートに要る以上の権限を与えていないかを確かめます。広げられた`Resource`や外された`Condition`など、通常の`check`では見えない差も対象です。与えていれば失敗します。複数のアプリでブートストラップを共有している場合は、ほかのアプリのアクションもここに出るので、全アプリの入力を渡して実行してください。
 
 どちらもAPIの呼び出しが増えます。Access Analyzerのカスタムポリシーチェックは[呼び出しごとに課金](https://aws.amazon.com/iam/access-analyzer/pricing/)されます（`ValidatePolicy`は無料）。
+
+### 複数のアカウント
+
+ポリシーは1つのアカウントに置きますが、CDK Pipelinesの`cdk.out`は、複数のアカウントにStageをデプロイすることがよくあります。`--account <id>`を付けると、そのアカウントにデプロイするスタック（と環境を指定しないスタック）だけを使います。アカウントごとに、その認証情報で実行してください。
+
+```sh
+AWS_PROFILE=dev  npx cfn-exec-policy apply --account 111111111111
+AWS_PROFILE=prod npx cfn-exec-policy apply --account 222222222222
+```
+
+`check`と`apply`は、認証情報が別のアカウントのものなら止まります。`--account`がないと、すべてのアカウントのスタックを含むポリシーを作り、警告を出します。ネストスタックのテンプレートは、同じディレクトリのスタックのアカウントに属します。それらが複数のアカウントにまたがる場合は、どのアカウントにも含めます。
 
 ## プルリクエストで使う
 
