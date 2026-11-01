@@ -185,10 +185,19 @@ func boundaryOrDefault(c common) string {
 func runGenerate(args []string) error {
 	c := newFlags("generate")
 	explain := c.fs.Bool("explain", false, "print, per action, the resources that need it and why, instead of the policy")
-	format := c.fs.String("format", "text", "with --explain: text or json")
+	format := c.fs.String("format", "", "json (default; the policy documents), terraform (aws_iam_policy resources) or cdk (a TypeScript function with ManagedPolicy); with --explain, text (default) or json")
 	c.fs.Parse(args)
-	if *format != "text" && *format != "json" {
-		return fmt.Errorf("--format must be text or json")
+	switch {
+	case *explain && *format == "":
+		*format = "text"
+	case *format == "":
+		*format = "json"
+	}
+	if *explain && *format != "text" && *format != "json" {
+		return fmt.Errorf("--explain --format must be text or json")
+	}
+	if !*explain && *format != "json" && *format != "terraform" && *format != "cdk" {
+		return fmt.Errorf("--format must be json, terraform or cdk")
 	}
 	actions, strict, inputs, err := required(c, nil)
 	if err != nil {
@@ -208,6 +217,9 @@ func runGenerate(args []string) error {
 	}
 	if strict != nil && *c.boundary == "" {
 		fmt.Fprintf(os.Stderr, "note: `apply --strict` also writes the permissions boundary %s\n", strict.Boundary)
+		if *format != "json" {
+			fmt.Fprintf(os.Stderr, "note: --format %s does not include it; manage your own and pass it with --boundary\n", *format)
+		}
 	}
 	var regions []string
 	if *c.regionCond {
@@ -220,6 +232,14 @@ func runGenerate(args []string) error {
 		}
 	}
 	docs := DocumentsIn(Compact(actions), strict, regions)
+	switch *format {
+	case "terraform":
+		WriteTerraform(os.Stdout, policyNames(*c.policyName, len(docs)), docs)
+		return nil
+	case "cdk":
+		WriteCDK(os.Stdout, policyNames(*c.policyName, len(docs)), docs)
+		return nil
+	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	if len(docs) == 1 {
