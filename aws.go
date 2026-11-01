@@ -155,24 +155,37 @@ func policyNames(base string, n int) []string {
 // existingActions reads the Allow actions of base, base-2, … until one is missing,
 // and the roles their iam:PassRole statements are scoped to (--strict).
 // parts is how many of them exist (0 when base itself does not).
-func (c *awsClients) existingActions(ctx context.Context, base string) (actions, roles []string, parts int, err error) {
+// existing is what the managed policy (all its parts) grants today.
+type existing struct {
+	actions, roles []string
+	regions        []string // aws:RequestedRegion values; nil when the policy has no region condition
+	parts          int
+}
+
+func (c *awsClients) existingActions(ctx context.Context, base string) (existing, error) {
 	docs, err := c.existingDocs(ctx, base)
 	if err != nil {
-		return nil, nil, 0, err
+		return existing{}, err
 	}
+	ex := existing{parts: len(docs)}
 	for _, d := range docs {
 		as, err := AllowedActions([]byte(d.doc))
 		if err != nil {
-			return nil, nil, 0, err
+			return existing{}, err
 		}
 		rs, err := PassRoleResources([]byte(d.doc))
 		if err != nil {
-			return nil, nil, 0, err
+			return existing{}, err
 		}
-		actions = append(actions, as...)
-		roles = append(roles, rs...)
+		regs, err := DocRegions([]byte(d.doc))
+		if err != nil {
+			return existing{}, err
+		}
+		ex.actions = append(ex.actions, as...)
+		ex.roles = append(ex.roles, rs...)
+		ex.regions = mergeRoles(ex.regions, regs)
 	}
-	return actions, roles, len(docs), nil
+	return ex, nil
 }
 
 // existingDocs reads the default versions of base, base-2, … until one is missing.

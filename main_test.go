@@ -120,7 +120,7 @@ func TestDocumentsSplitUnderLimit(t *testing.T) {
 }
 
 func TestAllowedActionsRoundTrip(t *testing.T) {
-	b, _ := json.Marshal(newDoc(1, []string{"s3:*", "sqs:CreateQueue"}, nil, nil))
+	b, _ := json.Marshal(newDoc(1, []string{"s3:*", "sqs:CreateQueue"}, nil, nil, nil))
 	got, err := AllowedActions(b)
 	if err != nil || strings.Join(got, ",") != "s3:*,sqs:CreateQueue" {
 		t.Fatalf("got %v %v", got, err)
@@ -487,7 +487,7 @@ func TestPassRoleResourcesKeepOtherApps(t *testing.T) {
 	if got := mergeRoles([]string{"arn:*:iam::*:role/AppA-*"}, have); strings.Join(got, ",") != "arn:*:iam::*:role/AppA-*,arn:*:iam::*:role/AppB-*" {
 		t.Errorf("merged %v", got)
 	}
-	plain, _ := json.Marshal(newDoc(1, []string{"iam:PassRole"}, nil, nil))
+	plain, _ := json.Marshal(newDoc(1, []string{"iam:PassRole"}, nil, nil, nil))
 	if got, _ := PassRoleResources(plain); len(got) != 0 {
 		t.Errorf("unscoped iam:PassRole read back as roles: %v", got)
 	}
