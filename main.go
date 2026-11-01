@@ -19,6 +19,8 @@ const usage = `cfn-exec-policy — IAM policy for your CloudFormation execution 
 Usage:
   cfn-exec-policy generate [flags] [cdk.out | template ...]   print the policy document(s)
   cfn-exec-policy check    [flags] [cdk.out | template ...]   exit 1 if the deployed policy is missing actions
+  cfn-exec-policy diff     --base <cdk.out> [flags] [cdk.out | template ...]
+                                                              print the permissions a change adds or drops
   cfn-exec-policy apply    [flags] [cdk.out | template ...]   create/update the managed policy and print the bootstrap command
   cfn-exec-policy delete   [--policy-name n] [--yes]          delete the managed policy (dry run without --yes)
   cfn-exec-policy version
@@ -38,6 +40,8 @@ func main() {
 		err = runGenerate(os.Args[2:])
 	case "check":
 		err = runCheck(os.Args[2:])
+	case "diff":
+		err = runDiff(os.Args[2:])
 	case "apply":
 		err = runApply(os.Args[2:])
 	case "delete":
@@ -65,6 +69,8 @@ type common struct {
 	passCond   *bool
 	strict     *bool
 	boundary   *string
+	account    *string
+	regionCond *bool
 }
 
 func newFlags(name string) common {
@@ -76,6 +82,8 @@ func newFlags(name string) common {
 		passCond:   fs.Bool("pass-role-condition", false, "limit iam:PassRole with iam:PassedToService to the services the templates pass roles to"),
 		strict:     fs.Bool("strict", false, "require a permissions boundary on every role and scope iam:PassRole to the stacks' roles (implies --pass-role-condition)"),
 		boundary:   fs.String("boundary", "", "with --strict, your own permissions boundary (policy name or ARN) instead of <policy-name>-boundary"),
+		account:    fs.String("account", "", "only the stacks that deploy to this account (a cdk.out with several accounts); check and apply need its credentials"),
+		regionCond: fs.Bool("region-condition", false, "allow the actions only in the regions the stacks deploy to (aws:RequestedRegion), plus us-east-1 for global services"),
 	}
 }
 
@@ -90,6 +98,19 @@ func required(c common, clients *awsClients) ([]string, *Strict, []*Template, er
 	tpls, err := LoadInputs(c.fs.Args())
 	if err != nil {
 		return nil, nil, nil, err
+	}
+	if a := *c.account; a != "" {
+		if clients != nil && clients.account != a {
+			return nil, nil, nil, fmt.Errorf("--account %s, but the credentials are for account %s; use a profile for %s", a, clients.account, a)
+		}
+		all := accounts(tpls)
+		if !slices.Contains(all, a) {
+			return nil, nil, nil, fmt.Errorf("--account %s: no stack deploys to it (the inputs name %s)", a, orNone(all))
+		}
+		tpls = inAccount(tpls, a)
+	} else if all := accounts(tpls); len(all) > 1 {
+		fmt.Fprintf(os.Stderr, "warning: the stacks deploy to accounts %s; the policy covers all of them. "+
+			"Pass --account <id> for the policy of one account\n", strings.Join(all, ", "))
 	}
 	inputs := tpls
 	var strict *Strict
@@ -135,6 +156,13 @@ func required(c common, clients *awsClients) ([]string, *Strict, []*Template, er
 	return actions, strict, inputs, nil
 }
 
+func orNone(xs []string) string {
+	if len(xs) == 0 {
+		return "no account"
+	}
+	return strings.Join(xs, ", ")
+}
+
 // mergeRoles returns the sorted union of two role pattern lists.
 func mergeRoles(a, b []string) []string {
 	out := slices.Clone(a)
@@ -156,15 +184,62 @@ func boundaryOrDefault(c common) string {
 
 func runGenerate(args []string) error {
 	c := newFlags("generate")
+	explain := c.fs.Bool("explain", false, "print, per action, the resources that need it and why, instead of the policy")
+	format := c.fs.String("format", "", "json (default; the policy documents), terraform (aws_iam_policy resources) or cdk (a TypeScript function with ManagedPolicy); with --explain, text (default) or json")
 	c.fs.Parse(args)
-	actions, strict, _, err := required(c, nil)
+	switch {
+	case *explain && *format == "":
+		*format = "text"
+	case *format == "":
+		*format = "json"
+	}
+	if *explain && *format != "text" && *format != "json" {
+		return fmt.Errorf("--explain --format must be text or json")
+	}
+	if !*explain && *format != "json" && *format != "terraform" && *format != "cdk" {
+		return fmt.Errorf("--format must be json, terraform or cdk")
+	}
+	actions, strict, inputs, err := required(c, nil)
 	if err != nil {
 		return err
 	}
+	if *explain {
+		tbl, err := LoadTable(*c.refresh)
+		if err != nil {
+			return err
+		}
+		by := Explain(tbl, inputs, *c.passCond || *c.strict)
+		if *format == "json" {
+			return WriteExplainJSON(os.Stdout, by)
+		}
+		WriteExplain(os.Stdout, by)
+		return nil
+	}
 	if strict != nil && *c.boundary == "" {
 		fmt.Fprintf(os.Stderr, "note: `apply --strict` also writes the permissions boundary %s\n", strict.Boundary)
+		if *format != "json" {
+			fmt.Fprintf(os.Stderr, "note: --format %s does not include it; manage your own and pass it with --boundary\n", *format)
+		}
 	}
-	docs := Documents(Compact(actions), strict)
+	var regions []string
+	if *c.regionCond {
+		fallback := os.Getenv("AWS_REGION")
+		if fallback == "" {
+			fallback = os.Getenv("AWS_DEFAULT_REGION")
+		}
+		if regions, err = RequestedRegions(inputs, fallback); err != nil {
+			return err
+		}
+	}
+	docs := DocumentsIn(Compact(actions), strict, regions)
+	switch *format {
+	case "terraform":
+		WriteTerraform(os.Stdout, policyNames(*c.policyName, len(docs)), docs)
+		return nil
+	case "cdk":
+		WriteCDK(os.Stdout, policyNames(*c.policyName, len(docs)), docs)
+		return nil
+	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	if len(docs) == 1 {
@@ -174,22 +249,94 @@ func runGenerate(args []string) error {
 	return enc.Encode(docs)
 }
 
+func runDiff(args []string) error {
+	c := newFlags("diff")
+	base := c.fs.String("base", "", "cdk.out (or template) to compare against, e.g. synthesized from the base branch")
+	format := c.fs.String("format", "text", "text or md (a pull request comment)")
+	failOn := c.fs.String("fail-on", "", "exit 3 when the change adds: wildcard, passrole, unknown or any (comma-separated)")
+	c.fs.Parse(args)
+	if *base == "" {
+		return usageError("diff needs --base")
+	}
+	if *format != "text" && *format != "md" {
+		return usageError("--format must be text or md")
+	}
+	var fails []string
+	for _, f := range strings.Split(*failOn, ",") {
+		switch f = strings.TrimSpace(f); f {
+		case "":
+		case riskWildcard, riskPassRole, riskUnknown, "any":
+			fails = append(fails, f)
+		default:
+			return usageError("--fail-on: unknown kind " + f)
+		}
+	}
+	tbl, err := LoadTable(*c.refresh)
+	if err != nil {
+		return err
+	}
+	baseTpls, err := LoadInputs([]string{*base})
+	if err != nil {
+		return err
+	}
+	headTpls, err := LoadInputs(c.fs.Args())
+	if err != nil {
+		return err
+	}
+	d := DiffPolicies(tbl, baseTpls, headTpls, *c.passCond || *c.strict)
+	if *c.strict {
+		baseRoles, _, err := PassRoleScope(baseTpls)
+		if err != nil {
+			return err
+		}
+		headRoles, _, err := PassRoleScope(headTpls)
+		if err != nil {
+			return err
+		}
+		for _, r := range headRoles {
+			if !slices.Contains(baseRoles, r) {
+				d.NewRoles = append(d.NewRoles, r)
+			}
+		}
+	}
+	if *format == "md" {
+		d.WriteMarkdown(os.Stdout)
+	} else {
+		d.WriteText(os.Stdout)
+	}
+	if f := d.failed(fails); len(f) > 0 {
+		fmt.Fprintf(os.Stderr, "the change adds %s (--fail-on)\n", strings.Join(f, ", "))
+		os.Exit(3)
+	}
+	return nil
+}
+
+// usageError exits 2, like a bad flag.
+func usageError(msg string) error {
+	fmt.Fprintln(os.Stderr, "error:", msg)
+	os.Exit(2)
+	return nil
+}
+
 func runCheck(args []string) error {
 	c := newFlags("check")
+	validate := c.fs.Bool("validate", false, "also run the policy the templates need (and the boundary) through IAM Access Analyzer ValidatePolicy")
+	noNew := c.fs.Bool("no-new-access", false, "also check with IAM Access Analyzer CheckNoNewAccess that the deployed policy grants nothing beyond what the templates need")
 	c.fs.Parse(args)
 	ctx := context.Background()
 	clients, err := newClients(ctx)
 	if err != nil {
 		return err
 	}
-	need, strict, _, err := required(c, clients)
+	need, strict, inputs, err := required(c, clients)
 	if err != nil {
 		return err
 	}
-	have, haveRoles, parts, err := clients.existingActions(ctx, *c.policyName)
+	ex, err := clients.existingActions(ctx, *c.policyName)
 	if err != nil {
 		return err
 	}
+	have, haveRoles, parts := ex.actions, ex.roles, ex.parts
 	if parts == 0 {
 		return fmt.Errorf("policy %s not found; run `cfn-exec-policy apply` first", clients.policyArn(*c.policyName))
 	}
@@ -206,12 +353,73 @@ func runCheck(args []string) error {
 			}
 		}
 	}
+	failed := false
+	if *c.regionCond && ex.regions != nil { // nil: the policy is not limited to regions
+		regions, err := RequestedRegions(inputs, clients.cfg.Region)
+		if err != nil {
+			return err
+		}
+		for _, r := range regions {
+			if !slices.Contains(ex.regions, r) {
+				missing = append(missing, "region "+r)
+			}
+		}
+	}
 	if len(missing) > 0 {
 		fmt.Fprintf(os.Stderr, "%s is missing %d action(s):\n  %s\nrun `cfn-exec-policy apply` to add them\n",
 			*c.policyName, len(missing), strings.Join(missing, "\n  "))
+		failed = true
+	} else {
+		fmt.Fprintf(os.Stderr, "%s* covers all %d required actions\n", *c.policyName, len(need))
+	}
+	if *validate || *noNew {
+		var regions []string // as apply would write them
+		if *c.regionCond {
+			if regions, err = RequestedRegions(inputs, clients.cfg.Region); err != nil {
+				return err
+			}
+		}
+		docs := DocumentsIn(Compact(need), strict, regions)
+		if *validate {
+			var named []namedDoc
+			for i, d := range docs {
+				b, _ := json.Marshal(d)
+				named = append(named, namedDoc{"generated " + policyNames(*c.policyName, len(docs))[i], string(b)})
+			}
+			if strict != nil && *c.boundary == "" {
+				b, _ := json.Marshal(BoundaryDocument(clients.part, clients.account, strict.Boundary, *c.policyName))
+				named = append(named, namedDoc{"generated " + strict.Boundary, string(b)})
+			}
+			bad, err := validatePolicies(ctx, clients.aa, named, os.Stderr)
+			if err != nil {
+				return err
+			}
+			if bad > 0 {
+				fmt.Fprintf(os.Stderr, "Access Analyzer: %d error(s) or security warning(s)\n", bad)
+				failed = true
+			} else {
+				fmt.Fprintln(os.Stderr, "Access Analyzer: no errors or security warnings")
+			}
+		}
+		if *noNew {
+			deployed, err := clients.existingDocs(ctx, *c.policyName)
+			if err != nil {
+				return err
+			}
+			broader, err := noNewAccess(ctx, clients.aa, deployed, merged(docs), os.Stderr)
+			if err != nil {
+				return err
+			}
+			if broader > 0 {
+				failed = true
+			} else {
+				fmt.Fprintf(os.Stderr, "%s* grants nothing beyond what the templates need\n", *c.policyName)
+			}
+		}
+	}
+	if failed {
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "%s* covers all %d required actions\n", *c.policyName, len(need))
 	return nil
 }
 
@@ -228,9 +436,27 @@ func runApply(args []string) error {
 	if err != nil {
 		return err
 	}
-	have, haveRoles, parts, err := clients.existingActions(ctx, *c.policyName)
+	ex, err := clients.existingActions(ctx, *c.policyName)
 	if err != nil {
 		return err
+	}
+	have, haveRoles, parts := ex.actions, ex.roles, ex.parts
+	var regions []string
+	switch {
+	case *c.regionCond:
+		if regions, err = RequestedRegions(inputs, clients.cfg.Region); err != nil {
+			return err
+		}
+		if !*prune && parts > 0 && ex.regions == nil {
+			return fmt.Errorf("--region-condition: %s allows its actions in every region, and an app bootstrapped "+
+				"in another region may use it; re-run with --prune if it serves only these stacks", *c.policyName)
+		}
+		if !*prune {
+			regions = mergeRoles(regions, ex.regions)
+		}
+	case ex.regions != nil:
+		fmt.Fprintf(os.Stderr, "warning: %s is limited to %s; without --region-condition it is rewritten for every region\n",
+			*c.policyName, strings.Join(ex.regions, ", "))
 	}
 	if !*prune {
 		// The exec role is shared by every app bootstrapped in this environment,
@@ -244,7 +470,7 @@ func runApply(args []string) error {
 		return fmt.Errorf("--strict: %s in %s would grant iam:PassRole and iam:CreateRole on every role; "+
 			"remove it from the policy, or re-run with --prune", strings.Join(ws, ", "), *c.policyName)
 	}
-	docs := Documents(Compact(actions), strict)
+	docs := DocumentsIn(Compact(actions), strict, regions)
 	// Parts that are no longer needed stay attached to the exec role until it is
 	// re-bootstrapped, so empty them rather than leave their old grants in place.
 	for len(docs) < parts {
@@ -287,10 +513,11 @@ func runDelete(args []string) error {
 	if err != nil {
 		return err
 	}
-	_, _, parts, err := clients.existingActions(ctx, *policyName)
+	ex, err := clients.existingActions(ctx, *policyName)
 	if err != nil {
 		return err
 	}
+	parts := ex.parts
 	names := policyNames(*policyName, parts)
 	// Only the boundary `apply --strict` wrote; one passed with --boundary is not ours.
 	boundary := *policyName + "-boundary"

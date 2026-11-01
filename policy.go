@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -15,10 +16,49 @@ const MaxPolicySize = 6144
 // and delete every resource in the templates, plus warnings for guesses and the types
 // guessed. With passCond, iam:PassRole of a type in passedToService becomes a passRole token.
 func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warnings, guessed []string) {
+	return requiredActions(tbl, tpls, passCond, nil)
+}
+
+// Why says what needs an action: a resource (Type and LogicalID set) or a
+// template parameter or dynamic reference, through which source.
+type Why struct {
+	Source    string `json:"source"`
+	Type      string `json:"type,omitempty"`
+	LogicalID string `json:"logicalId,omitempty"`
+	Template  string `json:"template"` // stack name, or the template file
+}
+
+// The sources of an action.
+const (
+	srcSchema   = "schema handlers"
+	srcMeasured = "hand-written (measured)"
+	srcFallback = "service wildcard (no handlers in the schema)"
+	srcCustom   = "custom resource"
+	srcNested   = "nested stack"
+	srcSSMParam = "SSM parameter type"
+	srcDynamic  = "dynamic reference"
+)
+
+// Explain returns, per action, what in the templates needs it.
+func Explain(tbl *Table, tpls []*Template, passCond bool) map[string][]Why {
+	out := map[string][]Why{}
+	requiredActions(tbl, tpls, passCond, func(action string, w Why) {
+		if !slices.Contains(out[action], w) {
+			out[action] = append(out[action], w)
+		}
+	})
+	return out
+}
+
+func requiredActions(tbl *Table, tpls []*Template, passCond bool, note func(string, Why)) (actions, warnings, guessed []string) {
 	set := map[string]bool{}
+	var why Why
 	add := func(as ...string) {
 		for _, a := range as {
 			set[a] = true
+			if note != nil {
+				note(a, why)
+			}
 		}
 	}
 	warned := map[string]bool{}
@@ -30,20 +70,26 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warn
 		}
 	}
 	for _, t := range tpls {
-		for _, r := range t.Resources {
+		name := t.StackName
+		if name == "" {
+			name = t.Path
+		}
+		for _, id := range sortedKeys(t.Resources) {
+			r := t.Resources[id]
+			why = Why{Type: r.Type, LogicalID: id, Template: name}
 			var as []string
 			switch {
 			case r.Type == "AWS::CDK::Metadata":
 			case strings.HasPrefix(r.Type, "Custom::") || r.Type == "AWS::CloudFormation::CustomResource":
 				// CloudFormation invokes the ServiceToken with the execution role (verified on bench, #3).
-				as = []string{"lambda:InvokeFunction", "sns:Publish"}
+				as, why.Source = []string{"lambda:InvokeFunction", "sns:Publish"}, srcCustom
 			case tbl.Types[r.Type] != nil:
-				as = tbl.Types[r.Type]
+				as, why.Source = tbl.Types[r.Type], srcSchema
 			case measured(r.Type):
-				as = handWritten[r.Type]
+				as, why.Source = handWritten[r.Type], srcMeasured
 			case tbl.Prefixes[namespace(r.Type)] != "":
 				p := tbl.Prefixes[namespace(r.Type)]
-				as = []string{p + ":*", "iam:PassRole"}
+				as, why.Source = []string{p + ":*", "iam:PassRole"}, srcFallback
 				if !contains(guessed, r.Type) {
 					guessed = append(guessed, r.Type)
 				}
@@ -70,15 +116,18 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warn
 			if r.Type == "AWS::CloudFormation::Stack" {
 				// The nested template URL, and the change sets CloudFormation drives nested
 				// stacks through (not in the schema; found on bench, #1).
+				why.Source = srcNested
 				add("s3:GetObject", "cloudformation:CreateChangeSet", "cloudformation:DescribeChangeSet",
 					"cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet")
 			}
 		}
-		for _, p := range t.Parameters {
-			if strings.HasPrefix(p.Type, "AWS::SSM::Parameter::Value") {
+		for _, pid := range sortedKeys(t.Parameters) {
+			if p := t.Parameters[pid]; strings.HasPrefix(p.Type, "AWS::SSM::Parameter::Value") {
+				why = Why{Source: srcSSMParam, Type: p.Type, LogicalID: pid, Template: name}
 				add("ssm:GetParameters")
 			}
 		}
+		why = Why{Source: srcDynamic, Template: name}
 		raw := string(t.Raw)
 		if strings.Contains(raw, "{{resolve:ssm") {
 			add("ssm:GetParameters")
@@ -92,6 +141,31 @@ func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warn
 	}
 	sort.Strings(guessed)
 	return sortedKeys(set), warnings, guessed
+}
+
+// dynamicRefs is the source RequiredActionsBy files the template-level reads under:
+// dynamic references and SSM parameter types.
+const dynamicRefs = "dynamic references"
+
+// RequiredActionsBy is RequiredActions with the actions kept apart by what needs
+// them: the resource type, or dynamicRefs.
+func RequiredActionsBy(tbl *Table, tpls []*Template, passCond bool) (by map[string][]string, warnings, guessed []string) {
+	sets := map[string]map[string]bool{}
+	_, warnings, guessed = requiredActions(tbl, tpls, passCond, func(a string, w Why) {
+		src := w.Type
+		if w.Source == srcSSMParam || w.Source == srcDynamic {
+			src = dynamicRefs
+		}
+		if sets[src] == nil {
+			sets[src] = map[string]bool{}
+		}
+		sets[src][a] = true
+	})
+	by = map[string][]string{}
+	for k, set := range sets {
+		by[k] = sortedKeys(set)
+	}
+	return by, warnings, guessed
 }
 
 // Compact merges Describe*/List* actions per service and drops actions covered
@@ -256,8 +330,23 @@ type Statement struct {
 // ponytail: strict writes the role list into part 1 twice and Documents moves only
 // plain actions to later parts, so hundreds of role patterns can push part 1 past
 // MaxPolicySize (apply then fails with IAM's error); split the roles too if that happens.
-func newDoc(i int, actions, services []string, strict *Strict) PolicyDocument {
+func newDoc(i int, actions, services []string, strict *Strict, regions []string) PolicyDocument {
 	d := PolicyDocument{Version: "2012-10-17"}
+	defer func() { // --region-condition: every Allow only in the regions the stacks use
+		if len(regions) == 0 {
+			return
+		}
+		for j := range d.Statement {
+			st := &d.Statement[j]
+			if st.Condition == nil {
+				st.Condition = map[string]map[string][]string{}
+			}
+			if st.Condition["StringEquals"] == nil {
+				st.Condition["StringEquals"] = map[string][]string{}
+			}
+			st.Condition["StringEquals"][requestedRegion] = regions
+		}
+	}()
 	var create []string
 	var roles any = "*"
 	pass := false // strict: a scoped, unconditioned iam:PassRole
@@ -312,6 +401,12 @@ func size(d PolicyDocument) int {
 // Documents splits actions into as few policy documents as fit the size limit,
 // always at least one. strict is nil unless --strict.
 func Documents(actions []string, strict *Strict) []PolicyDocument {
+	return DocumentsIn(actions, strict, nil)
+}
+
+// DocumentsIn is Documents with every statement limited to regions (--region-condition);
+// nil regions add no condition.
+func DocumentsIn(actions []string, strict *Strict, regions []string) []PolicyDocument {
 	sort.Strings(actions)
 	var plain, services []string
 	for _, a := range actions {
@@ -324,14 +419,14 @@ func Documents(actions []string, strict *Strict) []PolicyDocument {
 	var docs []PolicyDocument
 	var cur []string
 	for _, a := range plain {
-		if len(cur) > 0 && size(newDoc(len(docs)+1, append(append([]string{}, cur...), a), services, strict)) > MaxPolicySize {
-			docs = append(docs, newDoc(len(docs)+1, cur, services, strict))
+		if len(cur) > 0 && size(newDoc(len(docs)+1, append(append([]string{}, cur...), a), services, strict, regions)) > MaxPolicySize {
+			docs = append(docs, newDoc(len(docs)+1, cur, services, strict, regions))
 			cur = nil
 		}
 		cur = append(cur, a)
 	}
 	if len(cur) > 0 || len(docs) == 0 && len(services) > 0 {
-		docs = append(docs, newDoc(len(docs)+1, cur, services, strict))
+		docs = append(docs, newDoc(len(docs)+1, cur, services, strict, regions))
 	}
 	if len(docs) == 0 { // nothing needed; IAM has no empty policy
 		docs = append(docs, EmptyDocument())
@@ -398,14 +493,66 @@ func AllowedActions(doc []byte) ([]string, error) {
 	return out, nil
 }
 
-// passedTo returns the services of the condition Documents writes, or nil.
+// passedTo returns the services of the condition Documents writes, or nil. The
+// region condition of --region-condition may sit beside it.
 func passedTo(s map[string]any) []string {
 	cond, _ := s["Condition"].(map[string]any)
 	eq, _ := cond["StringEquals"].(map[string]any)
-	if len(cond) != 1 || len(eq) != 1 {
+	n := len(eq)
+	if _, ok := eq[requestedRegion]; ok {
+		n--
+	}
+	if len(cond) != 1 || n != 1 {
 		return nil
 	}
 	return stringList(eq["iam:PassedToService"])
+}
+
+const requestedRegion = "aws:RequestedRegion"
+
+// DocRegions returns the regions the Allow statements of a policy document are
+// limited to by --region-condition, or nil when one of them is not limited.
+func DocRegions(doc []byte) ([]string, error) {
+	stmts, err := statements(doc)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, s := range stmts {
+		if s["Effect"] != "Allow" {
+			continue
+		}
+		cond, _ := s["Condition"].(map[string]any)
+		eq, _ := cond["StringEquals"].(map[string]any)
+		regs := stringList(eq[requestedRegion])
+		if len(regs) == 0 {
+			return nil, nil
+		}
+		out = mergeRoles(out, regs)
+	}
+	return out, nil
+}
+
+// RequestedRegions returns the regions the stacks deploy to, plus us-east-1, where
+// the global services (IAM, CloudFront, Route 53, Organizations) take requests.
+// Nested stacks and deployed templates are in a region of their parents; a stack
+// with no region (env-agnostic, or a template file) is in fallback.
+func RequestedRegions(tpls []*Template, fallback string) ([]string, error) {
+	out := []string{"us-east-1"}
+	for _, t := range tpls {
+		if strings.HasSuffix(t.Path, ".nested.template.json") || strings.HasPrefix(t.Path, "deployed:") {
+			continue
+		}
+		r := t.Region
+		if r == "" {
+			r = fallback
+		}
+		if r == "" {
+			return nil, fmt.Errorf("--region-condition: %s has no region; set AWS_REGION", t.Path)
+		}
+		out = mergeRoles(out, []string{r})
+	}
+	return out, nil
 }
 
 // PassRoleResources returns the role ARN patterns the iam:PassRole statements --strict
