@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -15,31 +16,49 @@ const MaxPolicySize = 6144
 // and delete every resource in the templates, plus warnings for guesses and the types
 // guessed. With passCond, iam:PassRole of a type in passedToService becomes a passRole token.
 func RequiredActions(tbl *Table, tpls []*Template, passCond bool) (actions, warnings, guessed []string) {
-	by, warnings, guessed := RequiredActionsBy(tbl, tpls, passCond)
-	set := map[string]bool{}
-	for _, as := range by {
-		for _, a := range as {
-			set[a] = true
-		}
-	}
-	return sortedKeys(set), warnings, guessed
+	return requiredActions(tbl, tpls, passCond, nil)
 }
 
-// dynamicRefs is the source RequiredActionsBy files the template-level reads under:
-// dynamic references and SSM parameter types.
-const dynamicRefs = "dynamic references"
+// Why says what needs an action: a resource (Type and LogicalID set) or a
+// template parameter or dynamic reference, through which source.
+type Why struct {
+	Source    string `json:"source"`
+	Type      string `json:"type,omitempty"`
+	LogicalID string `json:"logicalId,omitempty"`
+	Template  string `json:"template"` // stack name, or the template file
+}
 
-// RequiredActionsBy is RequiredActions with the actions kept apart by what needs
-// them: the resource type, or dynamicRefs.
-func RequiredActionsBy(tbl *Table, tpls []*Template, passCond bool) (by map[string][]string, warnings, guessed []string) {
-	sets := map[string]map[string]bool{}
-	var src string
-	add := func(as ...string) {
-		if sets[src] == nil {
-			sets[src] = map[string]bool{}
+// The sources of an action.
+const (
+	srcSchema   = "schema handlers"
+	srcMeasured = "hand-written (measured)"
+	srcFallback = "service wildcard (no handlers in the schema)"
+	srcCustom   = "custom resource"
+	srcNested   = "nested stack"
+	srcSSMParam = "SSM parameter type"
+	srcDynamic  = "dynamic reference"
+)
+
+// Explain returns, per action, what in the templates needs it.
+func Explain(tbl *Table, tpls []*Template, passCond bool) map[string][]Why {
+	out := map[string][]Why{}
+	requiredActions(tbl, tpls, passCond, func(action string, w Why) {
+		if !slices.Contains(out[action], w) {
+			out[action] = append(out[action], w)
 		}
+	})
+	return out
+}
+
+func requiredActions(tbl *Table, tpls []*Template, passCond bool, note func(string, Why)) (actions, warnings, guessed []string) {
+	set := map[string]bool{}
+	var why Why
+	add := func(as ...string) {
 		for _, a := range as {
-			sets[src][a] = true
+			set[a] = true
+			if note != nil {
+				note(a, why)
+			}
 		}
 	}
 	warned := map[string]bool{}
@@ -51,21 +70,26 @@ func RequiredActionsBy(tbl *Table, tpls []*Template, passCond bool) (by map[stri
 		}
 	}
 	for _, t := range tpls {
-		for _, r := range t.Resources {
+		name := t.StackName
+		if name == "" {
+			name = t.Path
+		}
+		for _, id := range sortedKeys(t.Resources) {
+			r := t.Resources[id]
+			why = Why{Type: r.Type, LogicalID: id, Template: name}
 			var as []string
-			src = r.Type
 			switch {
 			case r.Type == "AWS::CDK::Metadata":
 			case strings.HasPrefix(r.Type, "Custom::") || r.Type == "AWS::CloudFormation::CustomResource":
 				// CloudFormation invokes the ServiceToken with the execution role (verified on bench, #3).
-				as = []string{"lambda:InvokeFunction", "sns:Publish"}
+				as, why.Source = []string{"lambda:InvokeFunction", "sns:Publish"}, srcCustom
 			case tbl.Types[r.Type] != nil:
-				as = tbl.Types[r.Type]
+				as, why.Source = tbl.Types[r.Type], srcSchema
 			case measured(r.Type):
-				as = handWritten[r.Type]
+				as, why.Source = handWritten[r.Type], srcMeasured
 			case tbl.Prefixes[namespace(r.Type)] != "":
 				p := tbl.Prefixes[namespace(r.Type)]
-				as = []string{p + ":*", "iam:PassRole"}
+				as, why.Source = []string{p + ":*", "iam:PassRole"}, srcFallback
 				if !contains(guessed, r.Type) {
 					guessed = append(guessed, r.Type)
 				}
@@ -92,16 +116,18 @@ func RequiredActionsBy(tbl *Table, tpls []*Template, passCond bool) (by map[stri
 			if r.Type == "AWS::CloudFormation::Stack" {
 				// The nested template URL, and the change sets CloudFormation drives nested
 				// stacks through (not in the schema; found on bench, #1).
+				why.Source = srcNested
 				add("s3:GetObject", "cloudformation:CreateChangeSet", "cloudformation:DescribeChangeSet",
 					"cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet")
 			}
 		}
-		src = dynamicRefs
-		for _, p := range t.Parameters {
-			if strings.HasPrefix(p.Type, "AWS::SSM::Parameter::Value") {
+		for _, pid := range sortedKeys(t.Parameters) {
+			if p := t.Parameters[pid]; strings.HasPrefix(p.Type, "AWS::SSM::Parameter::Value") {
+				why = Why{Source: srcSSMParam, Type: p.Type, LogicalID: pid, Template: name}
 				add("ssm:GetParameters")
 			}
 		}
+		why = Why{Source: srcDynamic, Template: name}
 		raw := string(t.Raw)
 		if strings.Contains(raw, "{{resolve:ssm") {
 			add("ssm:GetParameters")
@@ -114,6 +140,27 @@ func RequiredActionsBy(tbl *Table, tpls []*Template, passCond bool) (by map[stri
 		}
 	}
 	sort.Strings(guessed)
+	return sortedKeys(set), warnings, guessed
+}
+
+// dynamicRefs is the source RequiredActionsBy files the template-level reads under:
+// dynamic references and SSM parameter types.
+const dynamicRefs = "dynamic references"
+
+// RequiredActionsBy is RequiredActions with the actions kept apart by what needs
+// them: the resource type, or dynamicRefs.
+func RequiredActionsBy(tbl *Table, tpls []*Template, passCond bool) (by map[string][]string, warnings, guessed []string) {
+	sets := map[string]map[string]bool{}
+	_, warnings, guessed = requiredActions(tbl, tpls, passCond, func(a string, w Why) {
+		src := w.Type
+		if w.Source == srcSSMParam || w.Source == srcDynamic {
+			src = dynamicRefs
+		}
+		if sets[src] == nil {
+			sets[src] = map[string]bool{}
+		}
+		sets[src][a] = true
+	})
 	by = map[string][]string{}
 	for k, set := range sets {
 		by[k] = sortedKeys(set)
