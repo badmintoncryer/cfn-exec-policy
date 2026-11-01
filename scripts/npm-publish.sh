@@ -37,13 +37,14 @@ JSON
   OPT="$OPT\"$name\":\"$VERSION\","
 done
 for p in cfn-exec-policy cdk-exec-policy; do
-  cp -R "npm/$p" "$OUT/$p"; cp README.md LICENSE "$OUT/$p/"
+  cp -R "npm/$p" "$OUT/$p"; rm -rf "$OUT/$p/test"; cp README.md LICENSE "$OUT/$p/"
 done
 deps="{${OPT%,}}"
 cat >"$OUT/cfn-exec-policy/package.json" <<JSON
 {"name":"cfn-exec-policy","version":"$VERSION","description":"Generate the IAM policy for your CloudFormation execution role from AWS CDK / CloudFormation templates",
  "license":"Apache-2.0","repository":{"type":"git","url":"git+https://github.com/badmintoncryer/cfn-exec-policy.git"},"keywords":["aws","aws-cdk","cdk","cloudformation","iam","least-privilege","bootstrap"],
- "bin":{"cfn-exec-policy":"bin/cfn-exec-policy.js"},"optionalDependencies":$deps}
+ "main":"index.js","bin":{"cfn-exec-policy":"bin/cfn-exec-policy.js"},"optionalDependencies":$deps,
+ "peerDependencies":{"aws-cdk-lib":"^2.0.0"},"peerDependenciesMeta":{"aws-cdk-lib":{"optional":true}}}
 JSON
 publish "$OUT/cfn-exec-policy" "$@"
 cat >"$OUT/cdk-exec-policy/package.json" <<JSON

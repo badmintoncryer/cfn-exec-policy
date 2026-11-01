@@ -132,6 +132,24 @@ jobs:
 
 `@v1`は1.xの最新リリースを、`@v1.6.0`はそのバージョンを使います。
 
+## `cdk synth`で使う
+
+npmのパッケージには、CDKの[検証プラグイン](https://docs.aws.amazon.com/cdk/v2/guide/policy-validation-synthesis.html)も入っています。`cdk synth`のたびに`generate`を実行し、ポリシーが推測で補うものを、そのコンストラクトに報告します。
+
+```ts
+import { ExecPolicy } from 'cfn-exec-policy';
+
+const app = new App();
+// ... スタック
+ExecPolicy.apply(app, { strict: true });
+```
+
+- ハンドラーの権限がない型（`<サービス>:*`を許可する）と、知らない型は警告になります。`failOnGuess: true`でエラーにできます。
+- `strict: true`は、`--strict`が拒否するもの（permissions boundaryのないロール、IAMユーザーへの権限付与）があればsynthを失敗させます。自前のboundaryは`boundary`で指定します。
+- `args`: ほかのフラグ。例: `['--pass-role-condition']`。
+
+`ExecPolicy.apply`には、`Validations`のあるaws-cdk-libが要ります。古いバージョンでは、`new App({ policyValidationBeta1: [...] })`に`new ExecPolicyValidation({ ... })`を渡してください。AWSの認証情報は要りません。
+
 ## 実行に要る権限
 
 ここで挙げるのは、`check`、`apply`、`delete`を実行する側（CLIやCIの認証情報）に要る権限です。実行ロールの権限ではありません。
