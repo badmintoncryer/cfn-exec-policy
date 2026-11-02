@@ -1,0 +1,13 @@
+{
+  "version": "36.0.0",
+  "artifacts": {
+    "Messaging": {
+      "type": "aws:cloudformation:stack",
+      "properties": {"templateFile": "Messaging.template.json", "stackName": "Messaging"}
+    },
+    "AVeryLongStackNameThatGetsCutShort": {
+      "type": "aws:cloudformation:stack",
+      "properties": {"templateFile": "Long.template.json", "stackName": "AVeryLongStackNameThatGetsCutShort"}
+    }
+  }
+}

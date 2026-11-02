@@ -160,6 +160,8 @@ type existing struct {
 	actions, roles []string
 	regions        []string // aws:RequestedRegion values; nil when the policy has no region condition
 	parts          int
+	scoped         map[string][]string // --scope-resources: service -> resources its actions are limited to
+	everywhere     []string            // scopable services some statement allows on every resource
 }
 
 func (c *awsClients) existingActions(ctx context.Context, base string) (existing, error) {
@@ -180,6 +182,19 @@ func (c *awsClients) existingActions(ctx context.Context, base string) (existing
 		regs, err := DocRegions([]byte(d.doc))
 		if err != nil {
 			return existing{}, err
+		}
+		sc, ev, err := ScopedResources([]byte(d.doc))
+		if err != nil {
+			return existing{}, err
+		}
+		if ex.scoped == nil {
+			ex.scoped = map[string][]string{}
+		}
+		for svc, res := range sc {
+			ex.scoped[svc] = mergeRoles(ex.scoped[svc], res)
+		}
+		for _, svc := range ev {
+			ex.everywhere = appendNew(ex.everywhere, svc)
 		}
 		ex.actions = append(ex.actions, as...)
 		ex.roles = append(ex.roles, rs...)

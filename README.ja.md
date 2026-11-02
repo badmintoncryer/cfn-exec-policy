@@ -45,10 +45,29 @@ CIでは`npx cfn-exec-policy check`を使います。ポリシーに足りない
 | `diff --base <パス> [入力]` | 別の`cdk.out`（またはテンプレート）、たとえば`main`からsynthしたものと比べて、変更で増える権限と要らなくなる権限を表示する。[プルリクエストで使う](#プルリクエストで使う)を参照 | 不要 |
 | `apply [入力]` | 管理ポリシーを作成または更新し、`cdk bootstrap`のコマンドを表示する | 要 |
 | `delete` | 管理ポリシーを、分割した分と`--strict`のboundaryも含めて削除する。どれかがまだロールに付いていれば止まる。`--yes`を付けなければ、削除するポリシーを表示するだけ | 要 |
+| `doctor <stack>` | スタックの直近のデプロイで出た権限エラーを説明する。[デプロイが失敗したとき](#デプロイが失敗したとき)を参照 | 要（読み取りのみ） |
 
 入力には、`cdk.out`のディレクトリか、CloudFormationのテンプレート（JSONまたはYAML）を渡します。省略すると`./cdk.out`を読みます。ネストスタックとStageも含めて読みます。
 
-フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--region-condition`（スタックのリージョンに絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`--account`（[複数のアカウント](#複数のアカウント)を参照）、`apply --prune`、`delete --yes`、`diff --format`と`diff --fail-on`（後述）、`check --validate`と`check --no-new-access`（[IAM Access Analyzer](#iam-access-analyzer)を参照）。
+フラグ: `--policy-name`（既定は`cfn-exec-policy`）、`--refresh-schemas`（同梱の表ではなく、最新のCloudFormationスキーマを使う）、`--pass-role-condition`（`iam:PassRole`を渡し先のサービスで絞る。後述）、`--region-condition`（スタックのリージョンに絞る。後述）、`--strict`と`--boundary`（[`--strict`](#--strict)を参照）、`--account`（[複数のアカウント](#複数のアカウント)を参照）、`--scope-resources`（[リソースを絞る](#リソースを絞る)を参照）、`apply --prune`、`apply --drop-unused`（[使われていないサービスを外す](#使われていないサービスを外す)を参照）、`delete --yes`、`diff --format`と`diff --fail-on`（後述）、`check --validate`と`check --no-new-access`（[IAM Access Analyzer](#iam-access-analyzer)を参照）。
+
+### デプロイが失敗したとき
+
+実行ロールの権限が足りずにデプロイが失敗したら、`doctor`がスタックの直近の操作（と、その中で失敗したネストスタック）を読み、拒否されたリソースごとに、エラーに書かれたアクションを並べます。
+
+```sh
+npx cfn-exec-policy doctor MyStack --region eu-west-1
+```
+
+ポリシーがすでに許しているアクションは、ほかのもの（permissions boundary、SCP、リソースポリシー、条件）に拒否されたと表示します。アクションが書かれていないエラー（S3の`Access Denied`など）は、CloudTrailを見るよう案内します。権限の表に無いアクションは、issueに貼る行を出します。`--format json`で同じ内容をJSONで出力します。権限エラーが見つかると終了コード`3`で終わります。
+
+### 使われていないサービスを外す
+
+同じアカウントとリージョンでブートストラップしたアプリはすべて同じポリシーを使うので、`apply`はアクションを消しません。`apply --drop-unused 90`は、IAMの[最終アクセス情報](https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/access_policies_last-accessed.html)から、ポリシーが付いたロールが90日間呼んでいないサービスのアクションを外します。テンプレートに要るものは外しません。ポリシーが作られてからその日数が経っていなければ止まります（まだ使っていないだけかもしれないため）。`check --no-new-access`と同じく、ブートストラップを共有する全アプリのcdk.outを渡してください。
+
+### リソースを絞る
+
+既定では、どのステートメントも`Resource: "*"`です。`--scope-resources`（試験的。実アカウントではまだ確かめていません）は、SQSとSNSのアクションを、スタック自身のキューとトピックに絞ります。CloudFormationがスタック名から付ける名前（`arn:*:sqs:*:*:MyStack-*`）、テンプレートで固定した名前、テンプレートに書かれたキューURLやトピックARNが対象です。テンプレートから解決できないキューやトピックを指すリソース（インポートしたトピック、パラメータから来る名前）や、まだ絞れない型があれば、そのサービスは警告を出して`*`のままにします。入力は`cdk.out`ディレクトリである必要があります。`--prune`なしの`apply`は、ポリシーにすでにあるキューとトピックを残し、ポリシーがまだ`*`で許しているサービスは`*`のままにします。対象の型は[#32](https://github.com/badmintoncryer/cfn-exec-policy/issues/32)で増やしていきます。
 
 ### IAM Access Analyzer
 
@@ -159,6 +178,8 @@ ExecPolicy.apply(app, { strict: true });
 | `check`、`apply` | `cloudformation:GetTemplate`、`cloudformation:ListStackResources`（デプロイ済みのテンプレートとネストスタックを読む）、`iam:GetPolicy`、`iam:GetPolicyVersion` |
 | `check --validate` | `access-analyzer:ValidatePolicy` |
 | `check --no-new-access` | `access-analyzer:CheckNoNewAccess` |
+| `apply --drop-unused` | `iam:GenerateServiceLastAccessedDetails`、`iam:GetServiceLastAccessedDetails` |
+| `doctor` | `cloudformation:DescribeStackEvents`、`iam:GetPolicy`、`iam:GetPolicyVersion` |
 | `apply`のみ | `cloudformation:DescribeStackResources`（表示するコマンドのために、bootstrapのスタックを探す）、`iam:CreatePolicy`、`iam:CreatePolicyVersion`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`（ポリシーの版がすでに5つあるとき、既定でない最も古い版を消す） |
 | `delete` | `cloudformation:DescribeStackResources`、`iam:GetPolicy`、`iam:GetPolicyVersion`、`iam:ListEntitiesForPolicy`、`iam:ListPolicyVersions`、`iam:DeletePolicyVersion`、`iam:DeletePolicy` |
 
@@ -259,6 +280,29 @@ npx cfn-exec-policy delete --yes
 2. スタックが作ったロール: `cdk.json`から`@aws-cdk/core:permissionsBoundary`を消して、各アプリをデプロイし直します（または削除します）。
 
 boundaryがまだ付いているロールは、`delete`が表示します。
+
+## AIエージェントから使う
+
+`cfn-exec-policy mcp`は、標準入出力で[Model Context Protocol](https://modelcontextprotocol.io)のサーバーとして動きます。CDKを書くエージェントが、変更が実行ロールに何を求めるかを確かめられます。
+
+| ツール | 実行する内容 | AWSの認証情報 |
+|---|---|---|
+| `exec_policy_explain` | `generate --explain --format json`：アクションごとに、それが要るリソース | 不要 |
+| `exec_policy_generate` | `generate`：ポリシードキュメント | 不要 |
+| `exec_policy_diff` | `diff --format md --base <base>`：変更で増える権限と減る権限 | 不要 |
+| `exec_policy_doctor` | `doctor <stack> --format json`：失敗したデプロイの権限エラー | 要（読み取りのみ） |
+
+テンプレートを読むツールは、`inputs`（既定はクライアントの作業ディレクトリの`./cdk.out`）と、`strict`、`pass_role_condition`、`scope_resources`を受け取ります。Claude Codeなら次のとおりです。
+
+```sh
+claude mcp add exec-policy -- npx -y cfn-exec-policy mcp
+```
+
+ほかのクライアントでは、MCPの設定に次を書きます。
+
+```json
+{ "mcpServers": { "exec-policy": { "command": "npx", "args": ["-y", "cfn-exec-policy", "mcp"] } } }
+```
 
 ## インストール
 

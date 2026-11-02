@@ -10,6 +10,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 )
 
 var version = "dev"
@@ -23,6 +24,8 @@ Usage:
                                                               print the permissions a change adds or drops
   cfn-exec-policy apply    [flags] [cdk.out | template ...]   create/update the managed policy and print the bootstrap command
   cfn-exec-policy delete   [--policy-name n] [--yes]          delete the managed policy (dry run without --yes)
+  cfn-exec-policy doctor   <stack> [--region r] [--format f]  explain the permission errors of a stack's last deploy
+  cfn-exec-policy mcp                                         run as an MCP server (stdio) for AI agents
   cfn-exec-policy version
 
 Inputs default to ./cdk.out. check and apply also include the currently deployed
@@ -46,6 +49,10 @@ func main() {
 		err = runApply(os.Args[2:])
 	case "delete":
 		err = runDelete(os.Args[2:])
+	case "doctor":
+		err = runDoctor(os.Args[2:])
+	case "mcp":
+		err = runMCP(os.Stdin, os.Stdout, mcpExec)
 	case "table": // maintainer: regenerate table.json from a schema bundle
 		err = runTable(os.Args[2:])
 	case "version", "--version":
@@ -71,6 +78,7 @@ type common struct {
 	boundary   *string
 	account    *string
 	regionCond *bool
+	scope      *bool
 }
 
 func newFlags(name string) common {
@@ -84,6 +92,7 @@ func newFlags(name string) common {
 		boundary:   fs.String("boundary", "", "with --strict, your own permissions boundary (policy name or ARN) instead of <policy-name>-boundary"),
 		account:    fs.String("account", "", "only the stacks that deploy to this account (a cdk.out with several accounts); check and apply need its credentials"),
 		regionCond: fs.Bool("region-condition", false, "allow the actions only in the regions the stacks deploy to (aws:RequestedRegion), plus us-east-1 for global services"),
+		scope:      fs.Bool("scope-resources", false, "limit SQS and SNS actions to the stacks' own queues and topics instead of every resource (experimental)"),
 	}
 }
 
@@ -136,6 +145,15 @@ func required(c common, clients *awsClients) ([]string, *Strict, []*Template, er
 		tpls = append(tpls, deployed...)
 	}
 	actions, warnings, guessed := RequiredActions(tbl, tpls, *c.passCond || *c.strict)
+	resourceScopes = nil
+	if *c.scope {
+		scopes, ws, err := ResourceScopes(tbl, tpls)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		resourceScopes = scopes
+		warnings = append(warnings, ws...)
+	}
 	if strict != nil {
 		for _, typ := range guessed {
 			errs = append(errs, typ+" has no measured permissions, which --strict does not guess; please open an issue")
@@ -426,7 +444,11 @@ func runCheck(args []string) error {
 func runApply(args []string) error {
 	c := newFlags("apply")
 	prune := c.fs.Bool("prune", false, "drop actions no longer needed (other apps sharing this bootstrap may break)")
+	dropUnused := c.fs.Int("drop-unused", 0, "drop the policy's actions of services no role it is attached to has used in this many days, unless the templates need them")
 	c.fs.Parse(args)
+	if *dropUnused < 0 || *dropUnused > 0 && *prune {
+		return usageError("--drop-unused takes a number of days, and does nothing with --prune, which drops every action the templates don't need")
+	}
 	ctx := context.Background()
 	clients, err := newClients(ctx)
 	if err != nil {
@@ -458,12 +480,47 @@ func runApply(args []string) error {
 		fmt.Fprintf(os.Stderr, "warning: %s is limited to %s; without --region-condition it is rewritten for every region\n",
 			*c.policyName, strings.Join(ex.regions, ", "))
 	}
+	if *dropUnused > 0 && parts > 0 {
+		var arns []string
+		for _, n := range policyNames(*c.policyName, parts) {
+			arns = append(arns, clients.policyArn(n))
+		}
+		unused, err := UnusedServices(ctx, clients.iam.(lastAccessAPI), arns, *dropUnused, time.Now())
+		if err != nil {
+			return err
+		}
+		var needed []string // a service the templates need stays, even if unused so far
+		for _, a := range actions {
+			svc, _, _ := strings.Cut(a, ":")
+			needed = append(needed, svc)
+		}
+		unused = slices.DeleteFunc(unused, func(s string) bool { return slices.Contains(needed, s) })
+		var dropped []string
+		have, dropped = DropServices(have, unused)
+		if len(dropped) > 0 {
+			fmt.Fprintf(os.Stderr, "--drop-unused: dropping %d action(s) of %s, unused for %d days and not needed by the templates\n",
+				len(dropped), strings.Join(unused, ", "), *dropUnused)
+		} else {
+			fmt.Fprintf(os.Stderr, "--drop-unused: every service in %s was used in the last %d days or is needed by the templates\n", *c.policyName, *dropUnused)
+		}
+	}
 	if !*prune {
 		// The exec role is shared by every app bootstrapped in this environment,
 		// so keep what other apps needed, including the roles they pass.
 		actions = append(actions, have...)
 		if strict != nil {
 			strict.Roles = mergeRoles(strict.Roles, haveRoles)
+		}
+		// --scope-resources: keep the queues and topics other apps were allowed, and
+		// leave a service on every resource while the policy still allows it there.
+		for _, svc := range sortedKeys(resourceScopes) {
+			if slices.Contains(ex.everywhere, svc) {
+				fmt.Fprintf(os.Stderr, "warning: --scope-resources: %s allows %s actions on every resource, which another app may need; "+
+					"they stay that way (re-run with --prune if the policy serves only these stacks)\n", *c.policyName, svc)
+				delete(resourceScopes, svc)
+				continue
+			}
+			resourceScopes[svc] = mergeRoles(resourceScopes[svc], ex.scoped[svc])
 		}
 	}
 	if ws := Wildcards(actions); strict != nil && len(ws) > 0 {
@@ -642,4 +699,53 @@ func runTable(args []string) error {
 	}
 	fmt.Fprintf(os.Stderr, "%d types, %d namespaces\n", len(t.Types), len(t.Prefixes))
 	return os.WriteFile(*out, append(b, '\n'), 0o644)
+}
+
+func runDoctor(args []string) error {
+	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+	policyName := fs.String("policy-name", "cfn-exec-policy", "managed policy name, to tell a missing action from one denied by something else")
+	region := fs.String("region", "", "region of the stack (default: the configured one)")
+	format := fs.String("format", "text", "text or json")
+	refresh := fs.Bool("refresh-schemas", false, "use the latest CloudFormation schemas instead of the embedded table")
+	// Allow the stack name before the flags (cfn-exec-policy doctor MyStack --region eu-west-1).
+	var stack string
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		stack, args = args[0], args[1:]
+	}
+	fs.Parse(args)
+	if stack == "" && fs.NArg() > 0 {
+		stack = fs.Arg(0)
+	}
+	if stack == "" {
+		return usageError("doctor needs a stack name")
+	}
+	if *format != "text" && *format != "json" {
+		return usageError("--format must be text or json")
+	}
+	ctx := context.Background()
+	clients, err := newClients(ctx)
+	if err != nil {
+		return err
+	}
+	ds, err := Diagnose(ctx, clients.cfnIn(*region).(eventsAPI), stack)
+	if err != nil {
+		return err
+	}
+	ex, err := clients.existingActions(ctx, *policyName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not read %s: %v\n", *policyName, err)
+	}
+	MarkGranted(ds, ex.actions)
+	if *format == "json" {
+		if err := WriteDoctorJSON(os.Stdout, ds); err != nil {
+			return err
+		}
+	} else {
+		tbl, _ := LoadTable(*refresh)
+		WriteDoctor(os.Stdout, stack, ds, tbl, *policyName, ex.parts > 0)
+	}
+	if len(ds) > 0 {
+		os.Exit(3)
+	}
+	return nil
 }

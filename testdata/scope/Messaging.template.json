@@ -1,0 +1,9 @@
+{
+  "Resources": {
+    "Queue": {"Type": "AWS::SQS::Queue"},
+    "Fifo": {"Type": "AWS::SQS::Queue", "Properties": {"QueueName": "orders.fifo", "FifoQueue": true}},
+    "QueuePolicy": {"Type": "AWS::SQS::QueuePolicy", "Properties": {"Queues": [{"Ref": "Queue"}, "https://sqs.us-east-1.amazonaws.com/111111111111/shared"], "PolicyDocument": {}}},
+    "Topic": {"Type": "AWS::SNS::Topic"},
+    "Sub": {"Type": "AWS::SNS::Subscription", "Properties": {"TopicArn": {"Fn::ImportValue": "Other:TopicArn"}, "Protocol": "sqs", "Endpoint": {"Fn::GetAtt": ["Queue", "Arn"]}}}
+  }
+}

@@ -368,9 +368,15 @@ func newDoc(i int, actions, services []string, strict *Strict, regions []string)
 			pass, services = false, nil
 		}
 	}
+	actions, scoped := scopedActions(actions)
 	if len(actions) > 0 {
 		d.Statement = append(d.Statement, Statement{
 			Sid: fmt.Sprintf("CfnExecPolicy%d", i), Effect: "Allow", Action: actions, Resource: "*",
+		})
+	}
+	for _, svc := range sortedKeys(scoped) { // --scope-resources
+		d.Statement = append(d.Statement, Statement{
+			Sid: fmt.Sprintf("CfnExecPolicyScoped%s%d", strings.ToUpper(svc[:1])+svc[1:], i), Effect: "Allow", Action: scoped[svc], Resource: resourceScopes[svc],
 		})
 	}
 	if len(create) > 0 {
