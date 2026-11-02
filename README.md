@@ -54,6 +54,7 @@ something, so the deploy fails fast instead of mid-rollout. Re-run
 | `diff --base <path> [inputs]` | Print the permissions a change adds or drops, compared with another `cdk.out` (or template), e.g. one synthesized from `main`. See [In pull requests](#in-pull-requests) | no |
 | `apply [inputs]` | Create or update the managed policy, print the `cdk bootstrap` command | yes |
 | `delete` | Delete the managed policy, its split parts and the `--strict` boundary. Stops if any of them is still attached. Without `--yes`, only prints what it would delete | yes |
+| `doctor <stack>` | Explain the permission errors of a stack's last deploy. See [When a deploy fails](#when-a-deploy-fails) | yes (read-only) |
 
 Inputs are `cdk.out` directories (default: `./cdk.out`, including nested
 stacks and Stages) or CloudFormation templates (JSON or YAML).
@@ -62,9 +63,65 @@ Flags: `--policy-name` (default `cfn-exec-policy`), `--refresh-schemas` (use the
 latest CloudFormation schemas instead of the embedded table),
 `--pass-role-condition` and `--region-condition` (see below), `--strict` and `--boundary` (see
 [`--strict`](#--strict)), `--account` (see [Several accounts](#several-accounts)),
-`apply --prune`, `delete --yes`, `diff --format`
+`--scope-resources` (see [Scoping resources](#scoping-resources)),
+`apply --prune`, `apply --drop-unused` (see [Dropping unused services](#dropping-unused-services)),
+`delete --yes`, `diff --format`
 and `diff --fail-on` (see below), and `check --validate` / `check --no-new-access`
 (see [IAM Access Analyzer](#iam-access-analyzer)).
+
+### When a deploy fails
+
+When a deploy fails because the execution role was denied something,
+`doctor` reads the stack's last operation (and the nested stacks that failed
+in it), and lists each denied resource with the action the error names:
+
+```sh
+npx cfn-exec-policy doctor MyStack --region eu-west-1
+```
+
+```
+MyStack: 1 resource(s) failed on permissions in the last operation
+
+  MyStack  Mesh (AWS::AppMesh::Mesh)  CREATE_FAILED
+    User: arn:aws:sts::123456789012:assumed-role/cdk-hnb659fds-cfn-exec-role-.../AWSCloudFormation is not authorized to perform: appmesh:TagResource ...
+    appmesh:TagResource: not in cfn-exec-policy
+
+missing from cfn-exec-policy: appmesh:TagResource
+  Run `cfn-exec-policy apply` from the cdk.out of this deploy; if it still leaves them out, the table is missing them.
+```
+
+An action the policy already allows is reported as denied by something
+else (a permissions boundary, an SCP, a resource policy or a condition), and
+an error that names no action (S3's `Access Denied`) points you to CloudTrail.
+When the permission table would not grant the action to that resource type,
+it also prints the line to paste into an issue.
+`--format json` prints the same for other tools. It exits `3` when it finds a
+permission error.
+
+### Dropping unused services
+
+`apply` never removes actions, because every app bootstrapped in the account
+and region shares the policy. `apply --drop-unused 90` drops the actions of
+services that no role the policy is attached to has called in the last 90
+days, from IAM's [service last accessed data](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_last-accessed.html),
+unless your templates need them. It stops if the policy is younger than the
+window, since a service it has not used yet may simply not have been needed
+yet. Pass the cdk.out of every app that shares the bootstrap, as for
+`check --no-new-access`.
+
+### Scoping resources
+
+By default every statement has `Resource: "*"`. `--scope-resources`
+(experimental, not yet checked on a real account) limits the SQS and SNS
+actions to the stacks' own queues and topics: the names CloudFormation
+generates from the stack name (`arn:*:sqs:*:*:MyStack-*`), names fixed in
+the templates, and queue URLs or topic ARNs written in them. A service stays
+on `*`, with a warning, when a resource that needs it points at a queue or
+topic the templates don't resolve (an imported topic, a name from a
+parameter) or is a type it does not scope yet. Inputs must be `cdk.out`
+directories. Without `--prune`, `apply` keeps the queues and topics already in
+the policy, and leaves a service on `*` while the policy still allows it there.
+More types follow in [#32](https://github.com/badmintoncryer/cfn-exec-policy/issues/32).
 
 ### IAM Access Analyzer
 
@@ -214,6 +271,8 @@ CLI or CI credentials), not of the execution role.
 | `apply` only | `cloudformation:DescribeStackResources` (finds the bootstrap stack for the printed command), `iam:CreatePolicy`, `iam:CreatePolicyVersion`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion` (deletes the oldest non-default version when the policy already has 5) |
 | `check --validate` | `access-analyzer:ValidatePolicy` |
 | `check --no-new-access` | `access-analyzer:CheckNoNewAccess` |
+| `apply --drop-unused` | `iam:GenerateServiceLastAccessedDetails`, `iam:GetServiceLastAccessedDetails` |
+| `doctor` | `cloudformation:DescribeStackEvents`, `iam:GetPolicy`, `iam:GetPolicyVersion` |
 | `delete` | `cloudformation:DescribeStackResources`, `iam:GetPolicy`, `iam:GetPolicyVersion`, `iam:ListEntitiesForPolicy`, `iam:ListPolicyVersions`, `iam:DeletePolicyVersion`, `iam:DeletePolicy` |
 
 `sts:GetCallerIdentity` is also called, but it needs no permission.
