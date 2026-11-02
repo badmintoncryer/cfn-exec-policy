@@ -456,6 +456,33 @@ the boundary stops the execution role from removing boundaries:
 
 `delete` lists the roles that still carry it.
 
+## For AI agents
+
+`cfn-exec-policy mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on
+stdin/stdout, so an agent that writes CDK can see what its change asks of the
+execution role:
+
+| Tool | Runs | Needs AWS credentials |
+|---|---|---|
+| `exec_policy_explain` | `generate --explain --format json`: each action and the resources that need it | no |
+| `exec_policy_generate` | `generate`: the policy document(s) | no |
+| `exec_policy_diff` | `diff --format md --base <base>`: what a change adds or drops | no |
+| `exec_policy_doctor` | `doctor <stack> --format json`: the permission errors of a failed deploy | yes (read-only) |
+
+The template tools take `inputs` (default `./cdk.out` in the client's working
+directory) and the `strict`, `pass_role_condition` and `scope_resources` switches.
+For Claude Code:
+
+```sh
+claude mcp add exec-policy -- npx -y cfn-exec-policy mcp
+```
+
+or in any client's MCP configuration:
+
+```json
+{ "mcpServers": { "exec-policy": { "command": "npx", "args": ["-y", "cfn-exec-policy", "mcp"] } } }
+```
+
 ## Install
 
 ```sh

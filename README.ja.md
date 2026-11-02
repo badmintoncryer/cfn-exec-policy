@@ -281,6 +281,29 @@ npx cfn-exec-policy delete --yes
 
 boundaryがまだ付いているロールは、`delete`が表示します。
 
+## AIエージェントから使う
+
+`cfn-exec-policy mcp`は、標準入出力で[Model Context Protocol](https://modelcontextprotocol.io)のサーバーとして動きます。CDKを書くエージェントが、変更が実行ロールに何を求めるかを確かめられます。
+
+| ツール | 実行する内容 | AWSの認証情報 |
+|---|---|---|
+| `exec_policy_explain` | `generate --explain --format json`：アクションごとに、それが要るリソース | 不要 |
+| `exec_policy_generate` | `generate`：ポリシードキュメント | 不要 |
+| `exec_policy_diff` | `diff --format md --base <base>`：変更で増える権限と減る権限 | 不要 |
+| `exec_policy_doctor` | `doctor <stack> --format json`：失敗したデプロイの権限エラー | 要（読み取りのみ） |
+
+テンプレートを読むツールは、`inputs`（既定はクライアントの作業ディレクトリの`./cdk.out`）と、`strict`、`pass_role_condition`、`scope_resources`を受け取ります。Claude Codeなら次のとおりです。
+
+```sh
+claude mcp add exec-policy -- npx -y cfn-exec-policy mcp
+```
+
+ほかのクライアントでは、MCPの設定に次を書きます。
+
+```json
+{ "mcpServers": { "exec-policy": { "command": "npx", "args": ["-y", "cfn-exec-policy", "mcp"] } } }
+```
+
 ## インストール
 
 ```sh

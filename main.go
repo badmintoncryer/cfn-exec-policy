@@ -25,6 +25,7 @@ Usage:
   cfn-exec-policy apply    [flags] [cdk.out | template ...]   create/update the managed policy and print the bootstrap command
   cfn-exec-policy delete   [--policy-name n] [--yes]          delete the managed policy (dry run without --yes)
   cfn-exec-policy doctor   <stack> [--region r] [--format f]  explain the permission errors of a stack's last deploy
+  cfn-exec-policy mcp                                         run as an MCP server (stdio) for AI agents
   cfn-exec-policy version
 
 Inputs default to ./cdk.out. check and apply also include the currently deployed
@@ -50,6 +51,8 @@ func main() {
 		err = runDelete(os.Args[2:])
 	case "doctor":
 		err = runDoctor(os.Args[2:])
+	case "mcp":
+		err = runMCP(os.Stdin, os.Stdout, mcpExec)
 	case "table": // maintainer: regenerate table.json from a schema bundle
 		err = runTable(os.Args[2:])
 	case "version", "--version":
