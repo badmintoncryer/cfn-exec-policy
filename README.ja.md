@@ -87,6 +87,37 @@ AWS_PROFILE=prod npx cfn-exec-policy apply --account 222222222222
 
 `check`と`apply`は、認証情報が別のアカウントのものなら止まります。`--account`がないと、すべてのアカウントのスタックを含むポリシーを作り、警告を出します。ネストスタックのテンプレートは、同じディレクトリのスタックのアカウントに属します。それらが複数のアカウントにまたがる場合は、どのアカウントにも含めます。
 
+## CloudFormationテンプレートで使う
+
+CDKアプリがなくても使えます。`cdk.out`の代わりにテンプレートのファイルを渡します。`generate`、`diff`、`generate --explain`にはAWSの認証情報は要りません。
+
+```sh
+npx cfn-exec-policy generate template.yaml > policy.json
+npx cfn-exec-policy generate --explain template.yaml     # 各アクションが要る理由
+npx cfn-exec-policy diff --base base/template.yaml template.yaml
+```
+
+`cdk bootstrap`を使わない場合は、このポリシーを[CloudFormationのサービスロール](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)に付けて、デプロイのたびにそのロールを渡します。
+
+```sh
+npx cfn-exec-policy generate template.yaml > policy.json
+aws iam create-policy --policy-name cfn-exec-policy --policy-document file://policy.json
+aws iam create-role --role-name cfn-exec-role --assume-role-policy-document \
+  '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"cloudformation.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+aws iam attach-role-policy --role-name cfn-exec-role \
+  --policy-arn arn:aws:iam::123456789012:policy/cfn-exec-policy
+aws cloudformation deploy --template-file template.yaml --stack-name my-stack \
+  --role-arn arn:aws:iam::123456789012:role/cfn-exec-role
+```
+
+`apply template.yaml`でも同じように管理ポリシーを作成・更新できます（`--prune`を付けなければ、すでにあるアクションは残します）。最後に`cdk bootstrap`のコマンドを表示するので、その`--cloudformation-execution-policies`にあるポリシーのARNを、代わりに自分のロールに付けてください。IAMのサイズの上限を超えるポリシーは分割されます。このとき`generate`はドキュメントのJSON配列を出し（標準エラーにも注記が出ます）、それぞれを別のポリシーとしてロールに付ける必要があります。`check template.yaml`は`cdk.out`のときと同じくCIで使えます。`doctor <stack>`はどのスタックでも、最後のデプロイを読みます。
+
+`cdk.out`との違い:
+
+- テンプレートのファイルにはスタック名がないので、デプロイ済みのテンプレートを読みません。変更でリソースを消すとき、CloudFormationにはそれを削除する権限が要ります。デプロイ済みのテンプレートも入力に加えてください。たとえば`aws cloudformation get-template --stack-name my-stack --query TemplateBody --output text > deployed.yaml`（JSONのテンプレートから作ったスタックなら`--output json`）で取り出し、`npx cfn-exec-policy apply template.yaml deployed.yaml`とします。
+- `--region-condition`のリージョンは`AWS_REGION`から取ります（`check`と`apply`ではCLIのリージョン）。
+- `--strict`と`--scope-resources`はスタック名を使うので、`cdk.out`が必要です。
+
 ## プルリクエストで使う
 
 `diff`は、変更で実行ロールの権限がどう変わるかをレビューする人に見せます。2つの`cdk.out`から計算するので、AWSの認証情報は要りません。

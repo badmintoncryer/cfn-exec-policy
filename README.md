@@ -158,6 +158,54 @@ AWS_PROFILE=prod npx cfn-exec-policy apply --account 222222222222
 nested stack template takes the account of the stacks in its directory, or is
 kept for every account when they deploy to more than one.
 
+## With a CloudFormation template
+
+No CDK app is needed: pass the template files instead of `cdk.out`.
+`generate`, `diff` and `generate --explain` need no AWS credentials:
+
+```sh
+npx cfn-exec-policy generate template.yaml > policy.json
+npx cfn-exec-policy generate --explain template.yaml     # why each action is there
+npx cfn-exec-policy diff --base base/template.yaml template.yaml
+```
+
+Without `cdk bootstrap`, the policy goes on a
+[CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+that you pass to each deploy:
+
+```sh
+npx cfn-exec-policy generate template.yaml > policy.json
+aws iam create-policy --policy-name cfn-exec-policy --policy-document file://policy.json
+aws iam create-role --role-name cfn-exec-role --assume-role-policy-document \
+  '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"cloudformation.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+aws iam attach-role-policy --role-name cfn-exec-role \
+  --policy-arn arn:aws:iam::123456789012:policy/cfn-exec-policy
+aws cloudformation deploy --template-file template.yaml --stack-name my-stack \
+  --role-arn arn:aws:iam::123456789012:role/cfn-exec-role
+```
+
+`apply template.yaml` creates or updates the managed policy in the same way
+(keeping actions already in it unless `--prune`). It then prints a
+`cdk bootstrap` command; take the policy ARNs from its
+`--cloudformation-execution-policies` and attach them to your role instead.
+A policy over IAM's size limit is split: `generate` then prints a JSON array
+of documents (and a note on stderr), and each one needs its own policy on the
+role. `check template.yaml` works in CI as with `cdk.out`, and
+`doctor <stack>` reads any stack's last deploy.
+
+Differences from `cdk.out`:
+
+- A template file names no stack, so the deployed template is not read. When
+  a change removes resources, CloudFormation needs permission to delete them:
+  pass the deployed template as another input, e.g.
+  `aws cloudformation get-template --stack-name my-stack --query TemplateBody --output text > deployed.yaml`
+  (`--output json` for a stack created from a JSON template), then
+  `npx cfn-exec-policy apply template.yaml deployed.yaml`.
+- The region for `--region-condition` comes from `AWS_REGION` (or the CLI's
+  region for `check` and `apply`).
+- `--strict` and `--scope-resources` need `cdk.out`, since they rely on stack
+  names.
+
 ## In pull requests
 
 `diff` shows reviewers what a change does to the execution role, from two
