@@ -377,7 +377,7 @@ permissions, so updates, replacements, rollbacks and deletes all work.
 - Tag permissions from the schema's tagging section are added too, so changing
   or removing tags (CDK `Tags.of()`, stack tags) goes through.
 - About 6% of resource types publish no handler permissions. Those measured on
-  a real account (e.g. `AWS::CodeBuild::Project`, `AWS::LakeFormation::Resource`,
+  a real account (e.g. `AWS::DocDB::DBCluster`, `AWS::LakeFormation::Permissions`,
   `AWS::Route53::RecordSetGroup`) use a hand-written list; the rest (e.g.
   `AWS::AppMesh::Mesh`) get `<service>:*` plus `iam:PassRole` and a warning.
   Progress: [#5](https://github.com/badmintoncryer/cfn-exec-policy/issues/5).

@@ -453,11 +453,16 @@
    "apigateway:POST"
   ],
   "AWS::ApiGateway::DomainName": [
+   "apigateway:AddCertificateToDomain",
    "apigateway:DELETE",
    "apigateway:GET",
    "apigateway:PATCH",
    "apigateway:POST",
-   "apigateway:PUT"
+   "apigateway:PUT",
+   "apigateway:RemoveCertificateFromDomain",
+   "cloudfront:UpdateDistribution",
+   "s3:GetObject",
+   "s3:GetObjectVersion"
   ],
   "AWS::ApiGateway::DomainNameAccessAssociation": [
    "apigateway:CreateAccessAssociation",
@@ -776,6 +781,29 @@
    "appfabric:TagResource",
    "appfabric:UntagResource",
    "appfabric:UpdateAppAuthorization"
+  ],
+  "AWS::AppFabric::AppBundle": [
+   "appfabric:CreateAppBundle",
+   "appfabric:DeleteAppBundle",
+   "appfabric:GetAppBundle",
+   "appfabric:ListTagsForResource",
+   "appfabric:TagResource",
+   "appfabric:UntagResource",
+   "iam:CreateServiceLinkedRole",
+   "kms:CreateGrant",
+   "kms:Decrypt",
+   "kms:DescribeKey",
+   "kms:Encrypt",
+   "kms:GenerateDataKey",
+   "kms:RetireGrant"
+  ],
+  "AWS::AppFabric::Ingestion": [
+   "appfabric:CreateIngestion",
+   "appfabric:DeleteIngestion",
+   "appfabric:GetIngestion",
+   "appfabric:ListTagsForResource",
+   "appfabric:TagResource",
+   "appfabric:UntagResource"
   ],
   "AWS::AppFabric::IngestionDestination": [
    "appfabric:CreateIngestionDestination",
@@ -1586,6 +1614,18 @@
    "bcm-data-exports:UpdateExport",
    "cur:PutReportDefinition"
   ],
+  "AWS::Backup::BackupAccessPoint": [
+   "backup:CreateBackupAccessPoint",
+   "backup:DeleteBackupAccessPoint",
+   "backup:DescribeBackupAccessPoint",
+   "backup:ListTags",
+   "backup:TagResource",
+   "backup:UntagResource",
+   "s3:CreateAccessPoint",
+   "s3:DeleteAccessPoint",
+   "s3:GetAccessPoint",
+   "s3:PutAccessPointPolicy"
+  ],
   "AWS::Backup::BackupPlan": [
    "backup:CreateBackupPlan",
    "backup:DeleteBackupPlan",
@@ -1782,6 +1822,15 @@
    "Batch:UntagResource",
    "Batch:UpdateServiceEnvironment",
    "Iam:CreateServiceLinkedRole"
+  ],
+  "AWS::BcmPricingCalculator::BillEstimate": [
+   "bcm-pricing-calculator:CreateBillEstimate",
+   "bcm-pricing-calculator:DeleteBillEstimate",
+   "bcm-pricing-calculator:GetBillEstimate",
+   "bcm-pricing-calculator:ListTagsForResource",
+   "bcm-pricing-calculator:TagResource",
+   "bcm-pricing-calculator:UntagResource",
+   "bcm-pricing-calculator:UpdateBillEstimate"
   ],
   "AWS::BcmPricingCalculator::BillScenario": [
    "bcm-pricing-calculator:CreateBillScenario",
@@ -2055,6 +2104,18 @@
    "bedrock:GetResourcePolicy",
    "bedrock:PutResourcePolicy"
   ],
+  "AWS::Bedrock::RetrievalInstruction": [
+   "bedrock:CreateRetrievalInstruction",
+   "bedrock:DeleteRetrievalInstruction",
+   "bedrock:GetRetrievalInstruction",
+   "bedrock:ListTagsForResource",
+   "bedrock:TagResource",
+   "bedrock:UntagResource",
+   "bedrock:UpdateRetrievalInstruction",
+   "kms:Decrypt",
+   "kms:DescribeKey",
+   "kms:GenerateDataKey"
+  ],
   "AWS::Bedrock::Session": [
    "bedrock:CreateSession",
    "bedrock:DeleteSession",
@@ -2232,6 +2293,13 @@
    "bedrock-agentcore:UpdateGatewayTarget",
    "bedrock-mantle:GetModel",
    "bedrock-mantle:ListModels",
+   "bedrock:ListCustomModelDeployments",
+   "bedrock:ListFoundationModels",
+   "bedrock:ListImportedModels",
+   "bedrock:ListInferenceProfiles",
+   "bedrock:ListMarketplaceModelEndpoints",
+   "bedrock:ListPromptRouters",
+   "bedrock:ListProvisionedModelThroughputs",
    "ec2:CreateNetworkInterface",
    "ec2:DescribeSecurityGroups",
    "ec2:DescribeSubnets",
@@ -2300,6 +2368,7 @@
    "bedrock-agentcore:TagResource",
    "bedrock-agentcore:UntagResource",
    "bedrock-agentcore:UpdateMemory",
+   "bedrock-agentcore:UpdateMemoryRecordExpirySpecification",
    "iam:PassRole",
    "kms:CreateGrant",
    "kms:Decrypt",
@@ -2354,6 +2423,7 @@
    "bedrock-agentcore:CreatePaymentConnector",
    "bedrock-agentcore:DeletePaymentConnector",
    "bedrock-agentcore:GetPaymentConnector",
+   "bedrock-agentcore:GetPaymentCredentialProvider",
    "bedrock-agentcore:UpdatePaymentConnector"
   ],
   "AWS::BedrockAgentCore::PaymentCredentialProvider": [
@@ -3475,6 +3545,23 @@
    "organizations:DescribeOrganization",
    "organizations:ListAWSServiceAccessForOrganization"
   ],
+  "AWS::CloudWatch::AccessGrant": [
+   "cloudwatch:CreateAccessGrant",
+   "cloudwatch:DeleteAccessGrant",
+   "cloudwatch:GetAccessGrant",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource"
+  ],
+  "AWS::CloudWatch::AccessProfile": [
+   "cloudwatch:CreateAccessProfile",
+   "cloudwatch:DeleteAccessProfile",
+   "cloudwatch:GetAccessProfile",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource",
+   "cloudwatch:UpdateAccessProfile"
+  ],
   "AWS::CloudWatch::Alarm": [
    "cloudwatch:DeleteAlarms",
    "cloudwatch:DescribeAlarms",
@@ -3491,6 +3578,17 @@
    "cloudwatch:TagResource",
    "cloudwatch:UntagResource"
   ],
+  "AWS::CloudWatch::Alert": [
+   "cloudwatch:AssumeAccessProfile",
+   "cloudwatch:CreateAlert",
+   "cloudwatch:DeleteAlert",
+   "cloudwatch:GetAlert",
+   "cloudwatch:InvokeIntegration",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource",
+   "cloudwatch:UpdateAlert"
+  ],
   "AWS::CloudWatch::CompositeAlarm": [
    "cloudwatch:DeleteAlarms",
    "cloudwatch:DescribeAlarms",
@@ -3506,6 +3604,52 @@
    "cloudwatch:PutDashboard",
    "cloudwatch:TagResource",
    "cloudwatch:UntagResource"
+  ],
+  "AWS::CloudWatch::Domain": [
+   "cloudwatch:CreateDomain",
+   "cloudwatch:DeleteDomain",
+   "cloudwatch:GetDomain",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource",
+   "cloudwatch:UpdateDomain",
+   "sso:CreateApplication",
+   "sso:CreateApplicationAssignment",
+   "sso:DeleteApplication",
+   "sso:DeleteApplicationAssignment",
+   "sso:DescribeInstance",
+   "sso:ListRegions",
+   "sso:PutApplicationAccessScope",
+   "sso:PutApplicationAssignmentConfiguration",
+   "sso:PutApplicationAuthenticationMethod",
+   "sso:PutApplicationGrant"
+  ],
+  "AWS::CloudWatch::DomainAccessGrantForOrganization": [
+   "cloudwatch:CreateDomainAccessGrantForOrganization",
+   "cloudwatch:DeleteDomainAccessGrantForOrganization",
+   "cloudwatch:GetDomainAccessGrantForOrganization",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource"
+  ],
+  "AWS::CloudWatch::DomainForOrganization": [
+   "cloudwatch:CreateDomainForOrganization",
+   "cloudwatch:DeleteDomainForOrganization",
+   "cloudwatch:GetDomainForOrganization",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource",
+   "cloudwatch:UpdateDomainForOrganization",
+   "iam:PassRole",
+   "sso:CreateApplication",
+   "sso:CreateApplicationAssignment",
+   "sso:DeleteApplication",
+   "sso:DeleteApplicationAssignment",
+   "sso:DescribeInstance",
+   "sso:ListRegions",
+   "sso:PutApplicationAccessScope",
+   "sso:PutApplicationAssignmentConfiguration",
+   "sso:PutApplicationAuthenticationMethod",
+   "sso:PutApplicationGrant"
   ],
   "AWS::CloudWatch::InsightRule": [
    "cloudwatch:DeleteInsightRules",
@@ -3556,11 +3700,33 @@
    "cloudwatch:StopOTelEnrichment",
    "cloudwatch:UpdateOTelEnrichment"
   ],
+  "AWS::CloudWatch::OmniDashboard": [
+   "cloudwatch:CreateOmniDashboard",
+   "cloudwatch:DeleteOmniDashboard",
+   "cloudwatch:GetOmniDashboard",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource",
+   "cloudwatch:UpdateOmniDashboard"
+  ],
   "AWS::CloudWatch::ResourceMetricsConfiguration": [
    "cloudwatch:CreateResourceMetricsConfiguration",
    "cloudwatch:DeleteResourceMetricsConfiguration",
    "cloudwatch:GetResourceMetricsConfiguration",
    "cloudwatch:UpdateResourceMetricsConfiguration"
+  ],
+  "AWS::CloudWatch::Space": [
+   "cloudwatch:CreateSpace",
+   "cloudwatch:DeleteSpace",
+   "cloudwatch:GetSpace",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource",
+   "cloudwatch:UpdateSpace",
+   "iam:PassRole",
+   "kms:Decrypt",
+   "kms:DescribeKey",
+   "kms:GenerateDataKey"
   ],
   "AWS::CloudWatch::View": [
    "cloudwatch:CreateView",
@@ -3613,6 +3779,17 @@
    "codebuild:CreateFleet",
    "codebuild:DeleteFleet",
    "codebuild:UpdateFleet",
+   "iam:PassRole"
+  ],
+  "AWS::CodeBuild::Project": [
+   "codebuild:BatchGetProjects",
+   "codebuild:CreateProject",
+   "codebuild:CreateWebhook",
+   "codebuild:DeleteProject",
+   "codebuild:DeleteWebhook",
+   "codebuild:UpdateProject",
+   "codebuild:UpdateProjectVisibility",
+   "codebuild:UpdateWebhook",
    "iam:PassRole"
   ],
   "AWS::CodeBuild::ReportGroup": [
@@ -4856,6 +5033,27 @@
    "profile:TagResource",
    "profile:UntagResource"
   ],
+  "AWS::DAX::Cluster": [
+   "dax:CreateCluster",
+   "dax:CreateParameterGroup",
+   "dax:CreateSubnetGroup",
+   "dax:DecreaseReplicationFactor",
+   "dax:DeleteCluster",
+   "dax:DescribeClusters",
+   "dax:IncreaseReplicationFactor",
+   "dax:ListTags",
+   "dax:TagResource",
+   "dax:UntagResource",
+   "dax:UpdateCluster",
+   "ec2:CreateNetworkInterface",
+   "ec2:DeleteNetworkInterface",
+   "ec2:DescribeNetworkInterfaces",
+   "ec2:DescribeSecurityGroups",
+   "ec2:DescribeSubnets",
+   "ec2:DescribeVpcs",
+   "iam:GetRole",
+   "iam:PassRole"
+  ],
   "AWS::DAX::ParameterGroup": [
    "dax:CreateParameterGroup",
    "dax:DeleteParameterGroup",
@@ -5868,6 +6066,17 @@
    "directconnect:UpdateVirtualInterfaceAttributes",
    "sts:AssumeRole"
   ],
+  "AWS::DirectConnect::ResiliencyGroup": [
+   "directconnect:AssociateConnectionsToResiliencyGroup",
+   "directconnect:CreateResiliencyGroup",
+   "directconnect:DeleteResiliencyGroup",
+   "directconnect:DisassociateConnectionsFromResiliencyGroup",
+   "directconnect:GetResiliencyGroup",
+   "directconnect:ListResiliencyGroupAssociations",
+   "directconnect:TagResource",
+   "directconnect:UntagResource",
+   "directconnect:UpdateResiliencyGroup"
+  ],
   "AWS::DirectConnect::TransitVirtualInterface": [
    "directconnect:AssociateVirtualInterface",
    "directconnect:ConfirmTransitVirtualInterface",
@@ -6154,10 +6363,26 @@
    "ec2:DescribeClientVpnAuthorizationRules",
    "ec2:RevokeClientVpnIngress"
   ],
+  "AWS::EC2::ClientVpnEndpoint": [
+   "ec2:CreateClientVpnEndpoint",
+   "ec2:CreateTags",
+   "ec2:DeleteClientVpnEndpoint",
+   "ec2:DeleteClientVpnEndpointAuthorizationPolicy",
+   "ec2:DescribeClientVpnEndpoints",
+   "ec2:GetClientVpnEndpointAuthorizationPolicy",
+   "ec2:ModifyClientVpnEndpoint",
+   "ec2:ModifyClientVpnEndpointAuthorizationPolicy",
+   "iam:CreateServiceLinkedRole"
+  ],
   "AWS::EC2::ClientVpnRoute": [
    "ec2:CreateClientVpnRoute",
    "ec2:DeleteClientVpnRoute",
    "ec2:DescribeClientVpnRoutes"
+  ],
+  "AWS::EC2::ClientVpnTargetNetworkAssociation": [
+   "ec2:AssociateClientVpnTargetNetwork",
+   "ec2:DescribeClientVpnTargetNetworks",
+   "ec2:DisassociateClientVpnTargetNetwork"
   ],
   "AWS::EC2::CustomerGateway": [
    "ec2:CreateCustomerGateway",
@@ -6698,6 +6923,13 @@
    "ec2:DescribeSecurityGroupVpcAssociations",
    "ec2:DisassociateSecurityGroupVpc"
   ],
+  "AWS::EC2::Snapshot": [
+   "ec2:CreateSnapshot",
+   "ec2:CreateTags",
+   "ec2:DeleteSnapshot",
+   "ec2:DeleteTags",
+   "ec2:DescribeSnapshots"
+  ],
   "AWS::EC2::SnapshotBlockPublicAccess": [
    "ec2:DisableSnapshotBlockPublicAccess",
    "ec2:EnableSnapshotBlockPublicAccess",
@@ -6813,6 +7045,10 @@
    "ec2:DescribeTransitGatewayVpcAttachments",
    "ec2:ModifyTransitGatewayVpcAttachment"
   ],
+  "AWS::EC2::TransitGatewayAttachmentNatConfiguration": [
+   "ec2:GetTransitGatewayAttachmentNatConfiguration",
+   "ec2:ModifyTransitGatewayAttachmentNatConfiguration"
+  ],
   "AWS::EC2::TransitGatewayConnect": [
    "ec2:CreateTags",
    "ec2:CreateTransitGatewayConnect",
@@ -6872,7 +7108,8 @@
    "ec2:DeleteTags",
    "ec2:DeleteTransitGatewayPeeringAttachment",
    "ec2:DescribeTags",
-   "ec2:DescribeTransitGatewayPeeringAttachments"
+   "ec2:DescribeTransitGatewayPeeringAttachments",
+   "ec2:ModifyTransitGatewayPeeringAttachment"
   ],
   "AWS::EC2::TransitGatewayPolicyTable": [
    "ec2:CreateTags",
@@ -7341,6 +7578,22 @@
    "ecs:UpdateExpressGatewayService",
    "iam:PassRole"
   ],
+  "AWS::ECS::Gateway": [
+   "ecs:CreateGateway",
+   "ecs:DeleteGateway",
+   "ecs:DescribeGateway",
+   "ecs:ListGateways",
+   "ecs:ListTagsForResource",
+   "ecs:TagResource",
+   "ecs:UntagResource",
+   "ecs:UpdateGateway",
+   "iam:PassRole"
+  ],
+  "AWS::ECS::GatewayClusterAssociations": [
+   "ecs:AssociateGatewayWithCluster",
+   "ecs:DisassociateGatewayFromCluster",
+   "ecs:ListGatewayClusterAssociations"
+  ],
   "AWS::ECS::PrimaryTaskSet": [
    "ecs:DescribeTaskSets",
    "ecs:UpdateServicePrimaryTaskSet"
@@ -7564,6 +7817,35 @@
    "iam:GetRole",
    "iam:PassRole"
   ],
+  "AWS::EMR::Cluster": [
+   "elasticmapreduce:AddTags",
+   "elasticmapreduce:DescribeCluster",
+   "elasticmapreduce:GetAutoTerminationPolicy",
+   "elasticmapreduce:GetManagedScalingPolicy",
+   "elasticmapreduce:ListBootstrapActions",
+   "elasticmapreduce:ListInstanceFleets",
+   "elasticmapreduce:ListInstanceGroups",
+   "elasticmapreduce:ListSteps",
+   "elasticmapreduce:ModifyCluster",
+   "elasticmapreduce:ModifyInstanceFleet",
+   "elasticmapreduce:ModifyInstanceGroups",
+   "elasticmapreduce:PutAutoScalingPolicy",
+   "elasticmapreduce:PutAutoTerminationPolicy",
+   "elasticmapreduce:PutManagedScalingPolicy",
+   "elasticmapreduce:RemoveAutoScalingPolicy",
+   "elasticmapreduce:RemoveAutoTerminationPolicy",
+   "elasticmapreduce:RemoveManagedScalingPolicy",
+   "elasticmapreduce:RemoveTags",
+   "elasticmapreduce:RunJobFlow",
+   "elasticmapreduce:SetTerminationProtection",
+   "elasticmapreduce:SetUnhealthyNodeReplacement",
+   "elasticmapreduce:SetVisibleToAllUsers",
+   "elasticmapreduce:TerminateJobFlows",
+   "iam:CreateServiceLinkedRole",
+   "iam:PassRole",
+   "kms:Decrypt",
+   "kms:GenerateDataKey"
+  ],
   "AWS::EMR::InstanceFleetConfig": [
    "elasticmapreduce:AddInstanceFleet",
    "elasticmapreduce:ListInstanceFleets",
@@ -7584,7 +7866,8 @@
    "elasticmapreduce:DescribeSecurityConfiguration"
   ],
   "AWS::EMR::Step": [
-   "emr:AddJobFlowSteps"
+   "elasticmapreduce:AddJobFlowSteps",
+   "elasticmapreduce:DescribeStep"
   ],
   "AWS::EMR::Studio": [
    "elasticmapreduce:AddTags",
@@ -8781,13 +9064,29 @@
    "iam:assumeRole"
   ],
   "AWS::GameLift::GameSessionQueue": [
+   "firehose:TagDeliveryStream",
+   "gamelift:AllowVendedLogDeliveryForResource",
    "gamelift:CreateGameSessionQueue",
    "gamelift:DeleteGameSessionQueue",
    "gamelift:DescribeGameSessionQueues",
    "gamelift:ListTagsForResource",
    "gamelift:TagResource",
    "gamelift:UntagResource",
-   "gamelift:UpdateGameSessionQueue"
+   "gamelift:UpdateGameSessionQueue",
+   "iam:CreateServiceLinkedRole",
+   "logs:CreateDelivery",
+   "logs:CreateLogGroup",
+   "logs:DeleteDelivery",
+   "logs:DeleteDeliveryDestination",
+   "logs:DeleteDeliverySource",
+   "logs:DescribeLogGroups",
+   "logs:DescribeResourcePolicies",
+   "logs:PutDeliveryDestination",
+   "logs:PutDeliverySource",
+   "logs:PutResourcePolicy",
+   "s3:CreateBucket",
+   "s3:GetBucketPolicy",
+   "s3:PutBucketPolicy"
   ],
   "AWS::GameLift::Location": [
    "gamelift:CreateLocation",
@@ -9789,6 +10088,7 @@
    "ec2:CreateLaunchTemplateVersion",
    "ec2:DescribeLaunchTemplates",
    "ec2:ModifyLaunchTemplate",
+   "ecr:DescribeRepositories",
    "iam:CreateServiceLinkedRole",
    "iam:GetRole",
    "imagebuilder:CreateDistributionConfiguration",
@@ -10148,6 +10448,16 @@
    "iot:UntagResource",
    "iot:UpdateMitigationAction"
   ],
+  "AWS::IoT::OTAUpdate": [
+   "iam:PassRole",
+   "iot:CreateOTAUpdate",
+   "iot:DeleteOTAUpdate",
+   "iot:DescribeJob",
+   "iot:GetOTAUpdate",
+   "iot:ListTagsForResource",
+   "iot:TagResource",
+   "iot:UntagResource"
+  ],
   "AWS::IoT::Policy": [
    "iot:CreatePolicy",
    "iot:CreatePolicyVersion",
@@ -10361,26 +10671,6 @@
    "iotdeviceadvisor:TagResource",
    "iotdeviceadvisor:UntagResource",
    "iotdeviceadvisor:UpdateSuiteDefinition"
-  ],
-  "AWS::IoTEvents::DetectorModel": [
-   "iam:PassRole",
-   "iotevents:CreateDetectorModel",
-   "iotevents:DeleteDetectorModel",
-   "iotevents:DescribeDetectorModel",
-   "iotevents:ListTagsForResource",
-   "iotevents:TagResource",
-   "iotevents:UntagResource",
-   "iotevents:UpdateDetectorModel",
-   "iotevents:UpdateInputRouting"
-  ],
-  "AWS::IoTEvents::Input": [
-   "iotevents:CreateInput",
-   "iotevents:DeleteInput",
-   "iotevents:DescribeInput",
-   "iotevents:ListTagsForResource",
-   "iotevents:TagResource",
-   "iotevents:UntagResource",
-   "iotevents:UpdateInput"
   ],
   "AWS::IoTFleetWise::Campaign": [
    "iam:PassRole",
@@ -11058,6 +11348,18 @@
    "lakeformation:ListPermissions",
    "lakeformation:RevokePermissions"
   ],
+  "AWS::LakeFormation::Resource": [
+   "iam:CreateServiceLinkedRole",
+   "iam:GetRole",
+   "iam:GetRolePolicy",
+   "iam:PassRole",
+   "iam:PutRolePolicy",
+   "lakeformation:DeregisterResource",
+   "lakeformation:DescribeResource",
+   "lakeformation:ListResources",
+   "lakeformation:RegisterResource",
+   "lakeformation:UpdateResource"
+  ],
   "AWS::LakeFormation::Tag": [
    "lakeformation:CreateLFTag",
    "lakeformation:DeleteLFTag",
@@ -11136,6 +11438,7 @@
    "kms:DescribeKey",
    "kms:Encrypt",
    "kms:GenerateDataKey",
+   "lambda:AssociateRuntimeAlias",
    "lambda:CreateFunction",
    "lambda:DeleteFunction",
    "lambda:DeleteFunctionCodeSigningConfig",
@@ -11935,11 +12238,6 @@
    "lookoutequipment:StopInferenceScheduler",
    "lookoutequipment:UpdateInferenceScheduler"
   ],
-  "AWS::LookoutVision::Project": [
-   "lookoutvision:CreateProject",
-   "lookoutvision:DeleteProject",
-   "lookoutvision:DescribeProject"
-  ],
   "AWS::M2::Application": [
    "elasticloadbalancing:DeleteListener",
    "elasticloadbalancing:DeleteTargetGroup",
@@ -12008,6 +12306,15 @@
    "m2:UntagResource",
    "m2:UpdateEnvironment"
   ],
+  "AWS::MGN::Application": [
+   "mgn:CreateApplication",
+   "mgn:DeleteApplication",
+   "mgn:ListApplications",
+   "mgn:ListTagsForResource",
+   "mgn:TagResource",
+   "mgn:UntagResource",
+   "mgn:UpdateApplication"
+  ],
   "AWS::MGN::Connector": [
    "iam:CreateServiceLinkedRole",
    "mgn:CreateConnector",
@@ -12050,6 +12357,37 @@
    "s3:GetObjectAttributes",
    "s3:ListBucket",
    "s3:PutObject"
+  ],
+  "AWS::MGN::ReplicationConfigurationTemplate": [
+   "ec2:AuthorizeSecurityGroupEgress",
+   "ec2:AuthorizeSecurityGroupIngress",
+   "ec2:CreateSecurityGroup",
+   "ec2:CreateTags",
+   "ec2:DescribeInstanceTypes",
+   "ec2:DescribeSecurityGroups",
+   "ec2:DescribeSubnets",
+   "ec2:DescribeVpcs",
+   "ec2:GetEbsDefaultKmsKeyId",
+   "ec2:GetEbsEncryptionByDefault",
+   "ec2:RevokeSecurityGroupEgress",
+   "kms:CreateGrant",
+   "kms:DescribeKey",
+   "mgn:CreateReplicationConfigurationTemplate",
+   "mgn:DeleteReplicationConfigurationTemplate",
+   "mgn:DescribeReplicationConfigurationTemplates",
+   "mgn:ListTagsForResource",
+   "mgn:TagResource",
+   "mgn:UntagResource",
+   "mgn:UpdateReplicationConfigurationTemplate"
+  ],
+  "AWS::MGN::Wave": [
+   "mgn:CreateWave",
+   "mgn:DeleteWave",
+   "mgn:ListTagsForResource",
+   "mgn:ListWaves",
+   "mgn:TagResource",
+   "mgn:UntagResource",
+   "mgn:UpdateWave"
   ],
   "AWS::MPA::ApprovalTeam": [
    "mpa:CreateApprovalTeam",
@@ -12208,8 +12546,10 @@
    "logs:DeleteLogDelivery",
    "logs:DescribeLogGroups",
    "logs:DescribeResourcePolicies",
+   "logs:GetLogDelivery",
    "logs:ListLogDeliveries",
    "logs:PutResourcePolicy",
+   "logs:UpdateLogDelivery",
    "s3:GetBucketPolicy",
    "s3:PutBucketPolicy"
   ],
@@ -12381,6 +12721,22 @@
    "mediaconnect:RemoveBridgeSource",
    "mediaconnect:UpdateBridgeSource"
   ],
+  "AWS::MediaConnect::DestinationEndpoint": [
+   "ec2:CreateNetworkInterface",
+   "ec2:CreateTags",
+   "iam:CreateServiceLinkedRole",
+   "iam:PassRole",
+   "mediaconnect:AssociateDestination",
+   "mediaconnect:DeregisterDestinationEndpoint",
+   "mediaconnect:DisassociateDestination",
+   "mediaconnect:GetDestinationEndpoint",
+   "mediaconnect:ListDestinationEndpoints",
+   "mediaconnect:ListTagsForResource",
+   "mediaconnect:RegisterDestinationEndpoint",
+   "mediaconnect:TagResource",
+   "mediaconnect:UntagResource",
+   "mediaconnect:UpdateDestinationEndpoint"
+  ],
   "AWS::MediaConnect::Flow": [
    "iam:PassRole",
    "mediaconnect:AddFlowMediaStreams",
@@ -12463,12 +12819,16 @@
    "ec2:CreateNetworkInterface",
    "ec2:CreateTags",
    "iam:PassRole",
+   "mediaconnect:AssociateDestination",
    "mediaconnect:AssociateRouterNetworkInterface",
    "mediaconnect:CreateRouterInput",
    "mediaconnect:DeleteRouterInput",
+   "mediaconnect:DeregisterDestinationEndpoint",
+   "mediaconnect:DisassociateDestination",
    "mediaconnect:GetRouterInput",
    "mediaconnect:ListRouterInputs",
    "mediaconnect:ListTagsForResource",
+   "mediaconnect:RegisterDestinationEndpoint",
    "mediaconnect:TagResource",
    "mediaconnect:UntagResource",
    "mediaconnect:UpdateFlowOutput",
@@ -12491,16 +12851,35 @@
    "ec2:CreateTags",
    "iam:PassRole",
    "mediaconnect:AssociateRouterNetworkInterface",
+   "mediaconnect:AssociateSource",
    "mediaconnect:CreateRouterOutput",
    "mediaconnect:DeleteRouterOutput",
+   "mediaconnect:DeregisterSourceEndpoint",
+   "mediaconnect:DisassociateSource",
    "mediaconnect:GetRouterOutput",
    "mediaconnect:ListRouterOutputs",
    "mediaconnect:ListTagsForResource",
+   "mediaconnect:RegisterSourceEndpoint",
    "mediaconnect:TagResource",
    "mediaconnect:UntagResource",
    "mediaconnect:UpdateFlowSource",
    "mediaconnect:UpdateRouterOutput",
    "medialive:UpdateInput"
+  ],
+  "AWS::MediaConnect::SourceEndpoint": [
+   "ec2:CreateNetworkInterface",
+   "ec2:CreateTags",
+   "iam:CreateServiceLinkedRole",
+   "mediaconnect:AssociateSource",
+   "mediaconnect:DeregisterSourceEndpoint",
+   "mediaconnect:DisassociateSource",
+   "mediaconnect:GetSourceEndpoint",
+   "mediaconnect:ListSourceEndpoints",
+   "mediaconnect:ListTagsForResource",
+   "mediaconnect:RegisterSourceEndpoint",
+   "mediaconnect:TagResource",
+   "mediaconnect:UntagResource",
+   "mediaconnect:UpdateSourceEndpoint"
   ],
   "AWS::MediaConvert::CertificateAssociation": [
    "acm:DescribeCertificate",
@@ -12591,6 +12970,16 @@
    "medialive:DeleteTags",
    "medialive:GetEventBridgeRuleTemplateGroup",
    "medialive:UpdateEventBridgeRuleTemplateGroup"
+  ],
+  "AWS::MediaLive::Input": [
+   "iam:PassRole",
+   "medialive:CreateInput",
+   "medialive:CreateTags",
+   "medialive:DeleteInput",
+   "medialive:DeleteTags",
+   "medialive:DescribeInput",
+   "medialive:ListTagsForResource",
+   "medialive:UpdateInput"
   ],
   "AWS::MediaLive::InputSecurityGroup": [
    "medialive:CreateInputSecurityGroup",
@@ -13078,6 +13467,7 @@
   ],
   "AWS::NetworkFirewall::ContainerAssociation": [
    "ecs:DescribeClusters",
+   "ecs:ListContainerInstances",
    "eks:DescribeCluster",
    "events:DeleteRule",
    "events:PutRule",
@@ -13223,12 +13613,14 @@
    "networkmanager:CreateConnectAttachment",
    "networkmanager:DeleteAttachment",
    "networkmanager:GetConnectAttachment",
+   "networkmanager:ListAttachmentNatConfigurations",
    "networkmanager:ListAttachmentRoutingPolicyAssociations",
    "networkmanager:ListTagsForResource",
    "networkmanager:PutAttachmentRoutingPolicyLabel",
    "networkmanager:RemoveAttachmentRoutingPolicyLabel",
    "networkmanager:TagResource",
-   "networkmanager:UntagResource"
+   "networkmanager:UntagResource",
+   "networkmanager:UpdateAttachmentNatConfiguration"
   ],
   "AWS::NetworkManager::ConnectPeer": [
    "ec2:DescribeRegions",
@@ -13278,12 +13670,14 @@
    "networkmanager:CreateDirectConnectGatewayAttachment",
    "networkmanager:DeleteAttachment",
    "networkmanager:GetDirectConnectGatewayAttachment",
+   "networkmanager:ListAttachmentNatConfigurations",
    "networkmanager:ListAttachmentRoutingPolicyAssociations",
    "networkmanager:ListTagsForResource",
    "networkmanager:PutAttachmentRoutingPolicyLabel",
    "networkmanager:RemoveAttachmentRoutingPolicyLabel",
    "networkmanager:TagResource",
    "networkmanager:UntagResource",
+   "networkmanager:UpdateAttachmentNatConfiguration",
    "networkmanager:UpdateDirectConnectGatewayAttachment"
   ],
   "AWS::NetworkManager::GlobalNetwork": [
@@ -13324,12 +13718,14 @@
    "networkmanager:CreateSiteToSiteVpnAttachment",
    "networkmanager:DeleteAttachment",
    "networkmanager:GetSiteToSiteVpnAttachment",
+   "networkmanager:ListAttachmentNatConfigurations",
    "networkmanager:ListAttachmentRoutingPolicyAssociations",
    "networkmanager:ListTagsForResource",
    "networkmanager:PutAttachmentRoutingPolicyLabel",
    "networkmanager:RemoveAttachmentRoutingPolicyLabel",
    "networkmanager:TagResource",
-   "networkmanager:UntagResource"
+   "networkmanager:UntagResource",
+   "networkmanager:UpdateAttachmentNatConfiguration"
   ],
   "AWS::NetworkManager::TransitGatewayPeering": [
    "ec2:AcceptTransitGatewayPeeringAttachment",
@@ -13368,12 +13764,14 @@
    "networkmanager:CreateVpcAttachment",
    "networkmanager:DeleteAttachment",
    "networkmanager:GetVpcAttachment",
+   "networkmanager:ListAttachmentNatConfigurations",
    "networkmanager:ListAttachmentRoutingPolicyAssociations",
    "networkmanager:ListTagsForResource",
    "networkmanager:PutAttachmentRoutingPolicyLabel",
    "networkmanager:RemoveAttachmentRoutingPolicyLabel",
    "networkmanager:TagResource",
    "networkmanager:UntagResource",
+   "networkmanager:UpdateAttachmentNatConfiguration",
    "networkmanager:UpdateVpcAttachment"
   ],
   "AWS::NetworkMonitor::Monitor": [
@@ -13385,6 +13783,17 @@
    "networkmonitor:TagResource",
    "networkmonitor:UntagResource",
    "networkmonitor:UpdateMonitor"
+  ],
+  "AWS::NetworkMonitor::Probe": [
+   "ec2:CreateNetworkInterface",
+   "ec2:CreateSecurityGroup",
+   "ec2:CreateTags",
+   "networkmonitor:CreateProbe",
+   "networkmonitor:DeleteProbe",
+   "networkmonitor:GetProbe",
+   "networkmonitor:TagResource",
+   "networkmonitor:UntagResource",
+   "networkmonitor:UpdateProbe"
   ],
   "AWS::NetworkSecurityManager::Deployment": [
    "network-security-manager:CreateDeployment",
@@ -13620,6 +14029,12 @@
    "osis:TagResource",
    "osis:UntagResource",
    "osis:UpdatePipeline"
+  ],
+  "AWS::OSIS::PipelineEndpoint": [
+   "iam:CreateServiceLinkedRole",
+   "osis:CreatePipelineEndpoint",
+   "osis:DeletePipelineEndpoint",
+   "osis:ListPipelineEndpoints"
   ],
   "AWS::Oam::Link": [
    "application-signals:Link",
@@ -14313,6 +14728,15 @@
    "personalize:ListMetricAttributionMetrics",
    "personalize:UpdateMetricAttribution"
   ],
+  "AWS::Personalize::Recommender": [
+   "personalize:CreateRecommender",
+   "personalize:DeleteRecommender",
+   "personalize:DescribeRecommender",
+   "personalize:ListTagsForResource",
+   "personalize:TagResource",
+   "personalize:UntagResource",
+   "personalize:UpdateRecommender"
+  ],
   "AWS::Personalize::Schema": [
    "personalize:CreateSchema",
    "personalize:DeleteSchema",
@@ -14963,12 +15387,14 @@
    "rds:DescribeDBClusterAutomatedBackups",
    "rds:DescribeDBClusterSnapshots",
    "rds:DescribeDBClusters",
+   "rds:DescribeDBInstances",
    "rds:DescribeDBSnapshots",
    "rds:DescribeDBSubnetGroups",
    "rds:DescribeEvents",
    "rds:DescribeGlobalClusters",
    "rds:DisableHttpEndpoint",
    "rds:EnableHttpEndpoint",
+   "rds:EnableInternetAccessGateway",
    "rds:ModifyDBCluster",
    "rds:ModifyDBInstance",
    "rds:RemoveFromGlobalCluster",
@@ -15310,7 +15736,18 @@
    "ec2:CreateNetworkInterface",
    "ec2:CreateSecurityGroup",
    "ec2:CreateVpcEndpoint",
-   "ec2:Describe*",
+   "ec2:DescribeAddresses",
+   "ec2:DescribeAvailabilityZones",
+   "ec2:DescribeInternetGateways",
+   "ec2:DescribeNetworkAcls",
+   "ec2:DescribeNetworkInterfaces",
+   "ec2:DescribeRouteTables",
+   "ec2:DescribeSecurityGroupRules",
+   "ec2:DescribeSecurityGroups",
+   "ec2:DescribeSubnets",
+   "ec2:DescribeVpcAttribute",
+   "ec2:DescribeVpcEndpoints",
+   "ec2:DescribeVpcs",
    "ec2:ModifyNetworkInterfaceAttribute",
    "ec2:ModifyVpcEndpoint",
    "iam:CreateServiceLinkedRole",
@@ -16184,7 +16621,8 @@
    "route53profiles:ListProfileAssociations",
    "route53profiles:ListTagsForResource",
    "route53profiles:TagResource",
-   "route53profiles:UntagResource"
+   "route53profiles:UntagResource",
+   "route53profiles:UpdateProfileAssociation"
   ],
   "AWS::Route53Profiles::ProfileResourceAssociation": [
    "ec2:DescribeVpcEndpoints",
@@ -16278,6 +16716,11 @@
    "route53-recovery-readiness:TagResource",
    "route53-recovery-readiness:UntagResource",
    "route53-recovery-readiness:UpdateResourceSet"
+  ],
+  "AWS::Route53Resolver::FirewallConfig": [
+   "ec2:DescribeVpcs",
+   "route53resolver:GetFirewallConfig",
+   "route53resolver:UpdateFirewallConfig"
   ],
   "AWS::Route53Resolver::FirewallDomainList": [
    "route53resolver:CreateFirewallDomainList",
@@ -16467,6 +16910,7 @@
    "s3:GetBucketAbac",
    "s3:GetBucketAcl",
    "s3:GetBucketCORS",
+   "s3:GetBucketDefaultStorageClass",
    "s3:GetBucketLogging",
    "s3:GetBucketMetadataTableConfiguration",
    "s3:GetBucketNotification",
@@ -16489,6 +16933,7 @@
    "s3:PutBucketAbac",
    "s3:PutBucketAcl",
    "s3:PutBucketCORS",
+   "s3:PutBucketDefaultStorageClass",
    "s3:PutBucketLogging",
    "s3:PutBucketNotification",
    "s3:PutBucketObjectLockConfiguration",
@@ -18176,6 +18621,19 @@
    "securityagent:CreatePentest",
    "securityagent:UpdatePentest"
   ],
+  "AWS::SecurityAgent::PrivateConnection": [
+   "iam:CreateServiceLinkedRole",
+   "securityagent:CreatePrivateConnection",
+   "securityagent:DeletePrivateConnection",
+   "securityagent:DescribePrivateConnection",
+   "securityagent:ListTagsForResource",
+   "securityagent:TagResource",
+   "securityagent:UntagResource",
+   "securityagent:UpdatePrivateConnectionCertificate",
+   "vpc-lattice:AssociateViaAWSService",
+   "vpc-lattice:CreateServiceNetworkResourceAssociation",
+   "vpc-lattice:GetResourceConfiguration"
+  ],
   "AWS::SecurityAgent::SecurityRequirementPack": [
    "kms:Decrypt",
    "kms:DescribeKey",
@@ -18989,6 +19447,8 @@
    "ec2:DescribeVpcEndpoints",
    "ec2:DescribeVpcs",
    "iam:CreateServiceLinkedRole",
+   "kms:CreateGrant",
+   "kms:DescribeKey",
    "s3:GetBucketPolicy",
    "s3:ListBucket",
    "timestream-influxdb:CreateDbCluster",
@@ -18999,6 +19459,7 @@
    "timestream-influxdb:GetDbCluster",
    "timestream-influxdb:GetDbParameterGroup",
    "timestream-influxdb:ListDbClusters",
+   "timestream-influxdb:ListDbInstancesForCluster",
    "timestream-influxdb:ListTagsForResource",
    "timestream-influxdb:TagResource",
    "timestream-influxdb:UntagResource",
@@ -19012,6 +19473,8 @@
    "ec2:DescribeSubnets",
    "ec2:DescribeVpcs",
    "iam:CreateServiceLinkedRole",
+   "kms:CreateGrant",
+   "kms:DescribeKey",
    "s3:GetBucketPolicy",
    "s3:ListBucket",
    "timestream-influxdb:CreateDbInstance",
@@ -19228,6 +19691,14 @@
    "transfer:UpdateWebAppCustomization"
   ],
   "AWS::Transfer::Workflow": [
+   "logs:CreateLogDelivery",
+   "logs:DeleteLogDelivery",
+   "logs:DescribeLogGroups",
+   "logs:DescribeResourcePolicies",
+   "logs:GetLogDelivery",
+   "logs:ListLogDeliveries",
+   "logs:PutResourcePolicy",
+   "logs:UpdateLogDelivery",
    "transfer:CreateWorkflow",
    "transfer:DeleteWorkflow",
    "transfer:DescribeWorkflow",
@@ -19539,6 +20010,9 @@
    "amplify:AssociateWebACL",
    "amplify:DisassociateWebACL",
    "amplify:GetWebACLForResource",
+   "amplifygen3:AssociateWebACL",
+   "amplifygen3:DisassociateWebACL",
+   "amplifygen3:GetWebACLForResource",
    "apigateway:SetWebACL",
    "apprunner:AssociateWebAcl",
    "apprunner:DescribeWebAclForService",
@@ -19580,6 +20054,15 @@
    "wellarchitected:GetAgentGoal",
    "wellarchitected:UpdateAgentGoal"
   ],
+  "AWS::WellArchitected::AgentOrganizationalProfile": [
+   "wellarchitected:CreateAgentOrganizationalProfile",
+   "wellarchitected:DeleteAgentProfile",
+   "wellarchitected:GetAgentProfile",
+   "wellarchitected:ListTagsForResource",
+   "wellarchitected:TagResource",
+   "wellarchitected:UntagResource",
+   "wellarchitected:UpdateAgentOrganizationalProfile"
+  ],
   "AWS::WellArchitected::AgentProfile": [
    "iam:PassRole",
    "wellarchitected:CreateAgentProfile",
@@ -19589,6 +20072,11 @@
    "wellarchitected:TagResource",
    "wellarchitected:UntagResource",
    "wellarchitected:UpdateAgentProfile"
+  ],
+  "AWS::WellArchitected::AgentProfilePolicy": [
+   "wellarchitected:DeleteAgentProfilePolicy",
+   "wellarchitected:GetAgentProfilePolicy",
+   "wellarchitected:PutAgentProfilePolicy"
   ],
   "AWS::WellArchitected::Lens": [
    "wellarchitected:CreateLensVersion",
@@ -20067,6 +20555,7 @@
   "AWS::XRay::TransactionSearchConfig": [
    "application-signals:StartDiscovery",
    "iam:CreateServiceLinkedRole",
+   "kms:DescribeKey",
    "logs:CreateLogGroup",
    "logs:CreateLogStream",
    "logs:PutRetentionPolicy",
@@ -20223,7 +20712,6 @@
   "AWS::IoT": "iot",
   "AWS::IoTAnalytics": "iotanalytics",
   "AWS::IoTCoreDeviceAdvisor": "iot",
-  "AWS::IoTEvents": "iotevents",
   "AWS::IoTFleetWise": "iotfleetwise",
   "AWS::IoTSecureTunneling": "iot",
   "AWS::IoTSiteWise": "iotsitewise",
@@ -20248,7 +20736,6 @@
   "AWS::Location": "geo",
   "AWS::Logs": "logs",
   "AWS::LookoutEquipment": "lookoutequipment",
-  "AWS::LookoutVision": "lookoutvision",
   "AWS::M2": "m2",
   "AWS::MGN": "mgn",
   "AWS::MPA": "mpa",
