@@ -145,13 +145,13 @@ func TestEmptyDocumentGrantsNothing(t *testing.T) {
 
 func TestHandWritten(t *testing.T) {
 	actions, warnings := generate(t, "testdata/handwritten.yaml")
-	for _, want := range []string{"codebuild:CreateProject", "iam:PassRole", "route53:ChangeResourceRecordSets"} {
+	for _, want := range []string{"medialive:CreateChannel", "iam:PassRole", "route53:ChangeResourceRecordSets"} {
 		if !Covered(want, actions) {
 			t.Errorf("missing %s", want)
 		}
 	}
-	if Covered("codebuild:StartBuild", actions) {
-		t.Errorf("fell back to codebuild:*: %v", actions)
+	if Covered("medialive:StartChannel", actions) {
+		t.Errorf("fell back to medialive:*: %v", actions)
 	}
 	if len(warnings) > 0 {
 		t.Errorf("measured types should not warn: %q", warnings)

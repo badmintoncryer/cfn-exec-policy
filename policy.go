@@ -244,7 +244,6 @@ type PolicyDocument struct {
 // 2026-10-06 (#5).
 var handWritten = map[string][]string{
 	"AWS::CloudFormation::WaitConditionHandle": {},
-	"AWS::CodeBuild::Project":                  {"codebuild:CreateProject", "codebuild:DeleteProject", "codebuild:UpdateProject", "iam:PassRole"},
 	"AWS::IAM::UserToGroupAddition":            {"iam:AddUserToGroup", "iam:RemoveUserFromGroup"},
 	"AWS::CloudFormation::Macro":               {"iam:PassRole"},
 	"AWS::DocDB::DBCluster": {"rds:AddTagsToResource", "rds:CreateDBCluster", "rds:DeleteDBCluster",
@@ -256,27 +255,16 @@ var handWritten = map[string][]string{
 	// Lake Formation checks the Glue resource with the caller's credentials (not in CloudTrail).
 	// glue:GetTable is for TableResource grants, which bench did not exercise.
 	"AWS::LakeFormation::Permissions": {"glue:GetDatabase", "glue:GetTable", "lakeformation:GrantPermissions", "lakeformation:RevokePermissions"},
-	"AWS::LakeFormation::Resource": {"iam:GetRole", "iam:PassRole", "lakeformation:DeregisterResource", "lakeformation:RegisterResource",
-		"lakeformation:UpdateResource"},
 	"AWS::MediaLive::Channel": {"iam:PassRole", "medialive:CreateChannel", "medialive:CreateTags", "medialive:DeleteChannel",
 		"medialive:DeleteTags", "medialive:DescribeChannel", "medialive:UpdateChannel"},
-	"AWS::MediaLive::Input": {"iam:PassRole", "medialive:CreateInput", "medialive:CreateTags", "medialive:DeleteInput",
-		"medialive:DeleteTags", "medialive:DescribeInput", "medialive:UpdateInput"},
 	"AWS::CloudFormation::WaitCondition": {},
-	"AWS::EC2::ClientVpnEndpoint":        {"ec2:CreateClientVpnEndpoint", "ec2:CreateTags", "ec2:DeleteClientVpnEndpoint", "ec2:DeleteTags", "ec2:DescribeClientVpnEndpoints"},
 	"AWS::Route53::RecordSetGroup":       {"route53:ChangeResourceRecordSets", "route53:GetChange", "route53:GetHostedZone"},
 	// Hourly-billed types (#9), measured 2026-10-08. Tag actions not exercised on bench
 	// come from the IAM docs.
-	"AWS::DAX::Cluster": {"dax:CreateCluster", "dax:DeleteCluster", "dax:DescribeClusters", "dax:ListTags",
-		"dax:TagResource", "dax:UntagResource", "dax:UpdateCluster", "iam:PassRole"},
 	"AWS::DocDB::DBInstance": {"rds:AddTagsToResource", "rds:CreateDBInstance", "rds:DeleteDBInstance",
 		"rds:DescribeDBInstances", "rds:ListTagsForResource", "rds:ModifyDBInstance", "rds:RemoveTagsFromResource"},
 	"AWS::DMS::ReplicationInstance": {"dms:AddTagsToResource", "dms:CreateReplicationInstance", "dms:DeleteReplicationInstance",
 		"dms:DescribeReplicationInstances", "dms:ListTagsForResource", "dms:ModifyReplicationInstance", "dms:RemoveTagsFromResource"},
-	"AWS::EC2::ClientVpnTargetNetworkAssociation": {"ec2:AssociateClientVpnTargetNetwork",
-		"ec2:DescribeClientVpnTargetNetworks", "ec2:DisassociateClientVpnTargetNetwork"},
-	"AWS::EMR::Cluster": {"elasticmapreduce:AddTags", "elasticmapreduce:DescribeCluster", "elasticmapreduce:ModifyCluster",
-		"elasticmapreduce:RemoveTags", "elasticmapreduce:RunJobFlow", "elasticmapreduce:TerminateJobFlows", "iam:PassRole"},
 	"AWS::Elasticsearch::Domain": {"es:AddTags", "es:CreateElasticsearchDomain", "es:DeleteElasticsearchDomain",
 		"es:DescribeElasticsearchDomain", "es:ListTags", "es:RemoveTags", "iam:PassRole"},
 	"AWS::FSx::FileSystem": {"fsx:CreateFileSystem", "fsx:DeleteFileSystem", "fsx:DescribeFileSystems",
