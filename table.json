@@ -1355,6 +1355,17 @@
    "athena:GetPreparedStatement",
    "athena:UpdatePreparedStatement"
   ],
+  "AWS::Athena::SystemTables": [
+   "athena:CreateSystemTableConfiguration",
+   "athena:DeleteSystemTableConfiguration",
+   "athena:GetSystemTableConfiguration",
+   "athena:ListTagsForResource",
+   "athena:TagResource",
+   "athena:UntagResource",
+   "kms:DescribeKey",
+   "s3tables:CreateTableBucket",
+   "s3tables:PutTableBucketPolicy"
+  ],
   "AWS::Athena::WorkGroup": [
    "athena:CreateWorkGroup",
    "athena:DeleteWorkGroup",
@@ -2343,8 +2354,17 @@
    "bedrock-agentcore:UpdateAgentRuntimeEndpoint",
    "bedrock-agentcore:UpdateHarness",
    "bedrock-agentcore:UpdateMemory",
+   "ec2:AssignIpv6Addresses",
+   "ec2:CreateNetworkInterface",
+   "ec2:CreateNetworkInterfacePermission",
+   "ec2:DescribeNetworkInterfaces",
    "iam:CreateServiceLinkedRole",
-   "iam:PassRole"
+   "iam:PassRole",
+   "vpc-lattice:AssociateViaAWSService",
+   "vpc-lattice:CreateServiceNetworkResourceAssociation",
+   "vpc-lattice:GetResourceConfiguration",
+   "vpc-lattice:GetServiceNetworkResourceAssociation",
+   "vpc-lattice:ListServiceNetworkResourceAssociations"
   ],
   "AWS::BedrockAgentCore::HarnessEndpoint": [
    "bedrock-agentcore:CreateAgentRuntimeEndpoint",
@@ -2392,6 +2412,7 @@
    "kms:DescribeKey",
    "kms:GetPublicKey",
    "kms:Sign",
+   "s3:GetObject",
    "secretsmanager:CreateSecret",
    "secretsmanager:DeleteSecret",
    "secretsmanager:DescribeSecret",
@@ -3685,6 +3706,14 @@
    "logs:UntagResource",
    "logs:UpdateScheduledQuery"
   ],
+  "AWS::CloudWatch::MetricDataQueryDefinition": [
+   "cloudwatch:DeleteMetricDataQueryDefinition",
+   "cloudwatch:GetMetricDataQueryDefinition",
+   "cloudwatch:ListTagsForResource",
+   "cloudwatch:PutMetricDataQueryDefinition",
+   "cloudwatch:TagResource",
+   "cloudwatch:UntagResource"
+  ],
   "AWS::CloudWatch::MetricStream": [
    "cloudwatch:DeleteMetricStream",
    "cloudwatch:GetMetricStream",
@@ -4963,6 +4992,9 @@
    "app-integrations:ListEventIntegrationAssociations",
    "appflow:CreateFlow",
    "appflow:DeleteFlow",
+   "connect-campaigns:DeleteConnectInstanceIntegration",
+   "connect-campaigns:GetConnectInstanceConfig",
+   "connect-campaigns:PutConnectInstanceIntegration",
    "connect:DescribeInstance",
    "ds:DescribeDirectories",
    "events:DeleteRule",
@@ -5178,6 +5210,15 @@
    "iam:GetServiceLinkedRoleDeletionStatus",
    "iam:PutRolePolicy",
    "iam:UpdateRoleDescription"
+  ],
+  "AWS::DMS::ReplicationInstance": [
+   "dms:AddTagsToResource",
+   "dms:CreateReplicationInstance",
+   "dms:DeleteReplicationInstance",
+   "dms:DescribeReplicationInstances",
+   "dms:ListTagsForResource",
+   "dms:ModifyReplicationInstance",
+   "dms:RemoveTagsFromResource"
   ],
   "AWS::DMS::ReplicationSubnetGroup": [
    "dms:AddTagsToResource",
@@ -6443,6 +6484,24 @@
    "ec2:DisassociateEnclaveCertificateIamRole",
    "ec2:GetAssociatedEnclaveCertificateIamRoles"
   ],
+  "AWS::EC2::FcaPolicy": [
+   "ec2:CreateNetworkingFlexCostAllocationPolicy",
+   "ec2:CreateTags",
+   "ec2:DeleteNetworkingFlexCostAllocationPolicies",
+   "ec2:DeleteTags",
+   "ec2:DescribeNetworkingFlexCostAllocationPolicies",
+   "ec2:ModifyNetworkingFlexCostAllocationPolicy"
+  ],
+  "AWS::EC2::FcaPolicyAssociation": [
+   "ec2:AssociateNetworkingFlexCostAllocationPolicy",
+   "ec2:DescribeInstances",
+   "ec2:DescribeNatGateways",
+   "ec2:DescribeNetworkingFlexCostAllocationPolicyAssociations",
+   "ec2:DescribeSubnets",
+   "ec2:DescribeVpcPeeringConnections",
+   "ec2:DescribeVpcs",
+   "ec2:DisassociateNetworkingFlexCostAllocationPolicy"
+  ],
   "AWS::EC2::FlowLog": [
    "autoscaling:DescribeTags",
    "ec2:CreateFlowLogs",
@@ -6455,6 +6514,7 @@
    "iam:PassRole",
    "logs:CreateLogDelivery",
    "logs:DeleteLogDelivery",
+   "networkmanager:GetCoreNetwork",
    "s3:GetBucketPolicy",
    "s3:PutBucketPolicy"
   ],
@@ -7101,6 +7161,16 @@
    "ec2:DeregisterTransitGatewayMulticastGroupSources",
    "ec2:RegisterTransitGatewayMulticastGroupSources",
    "ec2:SearchTransitGatewayMulticastGroups"
+  ],
+  "AWS::EC2::TransitGatewayNetworkFunctionAttachment": [
+   "ec2:CreateTags",
+   "ec2:CreateTransitGatewayNetworkFunctionAttachment",
+   "ec2:DeleteTags",
+   "ec2:DeleteTransitGatewayNetworkFunctionAttachment",
+   "ec2:DescribeTags",
+   "ec2:DescribeTransitGatewayNetworkFunctionAttachments",
+   "ec2:DescribeVpcEndpointServices",
+   "ec2:ModifyTransitGatewayNetworkFunctionAttachment"
   ],
   "AWS::EC2::TransitGatewayPeeringAttachment": [
    "ec2:CreateTags",
@@ -7815,7 +7885,11 @@
    "eks:UntagResource",
    "eks:UpdatePodIdentityAssociation",
    "iam:GetRole",
-   "iam:PassRole"
+   "iam:GetWorkloadIdentityProvider",
+   "iam:GetWorkloadIdentityTemplate",
+   "iam:GetWorkloadIdentityTemplateAttestationPolicy",
+   "iam:PassRole",
+   "iam:PassWorkloadIdentityTemplate"
   ],
   "AWS::EMR::Cluster": [
    "elasticmapreduce:AddTags",
@@ -8007,7 +8081,8 @@
    "sso:PutApplicationAccessScope",
    "sso:PutApplicationAssignmentConfiguration",
    "sso:PutApplicationAuthenticationMethod",
-   "sso:PutApplicationGrant"
+   "sso:PutApplicationGrant",
+   "sso:PutApplicationSessionConfiguration"
   ],
   "AWS::EVS::Environment": [
    "ec2:AllocateHosts",
@@ -8506,7 +8581,11 @@
    "secretsmanager:CreateSecret",
    "secretsmanager:GetSecretValue",
    "secretsmanager:PutSecretValue",
-   "secretsmanager:UpdateSecret"
+   "secretsmanager:UpdateSecret",
+   "vpc-lattice:AssociateViaAWSService-EventsAndStates",
+   "vpc-lattice:CreateServiceNetworkResourceAssociation",
+   "vpc-lattice:GetResourceConfiguration",
+   "vpc-lattice:TagResource"
   ],
   "AWS::Events::Endpoint": [
    "events:CreateEndpoint",
@@ -9186,7 +9265,9 @@
    "glue:UpdateCatalog",
    "iam:CreateServiceLinkedRole",
    "iam:PassRole",
+   "kms:CreateGrant",
    "kms:Decrypt",
+   "kms:DescribeKey",
    "kms:Encrypt",
    "kms:GenerateDataKey",
    "lakeformation:DeregisterResource",
@@ -11285,10 +11366,12 @@
    "iam:PassRole",
    "kinesisanalytics:AddApplicationVpcConfiguration",
    "kinesisanalytics:CreateApplication",
+   "kinesisanalytics:CreateSystemSnapshot",
    "kinesisanalytics:DeleteApplication",
    "kinesisanalytics:DeleteApplicationVpcConfiguration",
    "kinesisanalytics:DescribeApplication",
    "kinesisanalytics:ListTagsForResource",
+   "kinesisanalytics:RestoreFromSnapshot",
    "kinesisanalytics:TagResource",
    "kinesisanalytics:UntagResource",
    "kinesisanalytics:UpdateApplication",
@@ -11298,6 +11381,19 @@
    "kms:DescribeKey",
    "kms:GenerateDataKey",
    "kms:GenerateDataKeyWithoutPlaintext"
+  ],
+  "AWS::KinesisAnalyticsV2::Snapshot": [
+   "iam:PassRole",
+   "kinesisanalytics:CreateSnapshot",
+   "kinesisanalytics:DeleteSnapshot",
+   "kinesisanalytics:DescribeSnapshot",
+   "kinesisanalytics:ImportSnapshot",
+   "kinesisanalytics:ListTagsForResource",
+   "kinesisanalytics:TagResource",
+   "kinesisanalytics:UntagResource",
+   "kms:Decrypt",
+   "kms:DescribeKey",
+   "kms:GenerateDataKey"
   ],
   "AWS::KinesisFirehose::DeliveryStream": [
    "firehose:CreateDeliveryStream",
@@ -11431,6 +11527,8 @@
    "ec2:DescribeSecurityGroups",
    "ec2:DescribeSubnets",
    "ec2:DescribeVpcs",
+   "ecr:BatchGetImage",
+   "ecr:GetDownloadUrlForLayer",
    "elasticfilesystem:DescribeMountTargets",
    "iam:PassRole",
    "kms:CreateGrant",
@@ -11480,6 +11578,11 @@
   ],
   "AWS::Lambda::MicrovmImage": [
    "iam:PassRole",
+   "kms:Decrypt",
+   "kms:DescribeKey",
+   "kms:Encrypt",
+   "kms:GenerateDataKey",
+   "kms:GenerateDataKeyWithoutPlaintext",
    "lambda:CreateMicrovmImage",
    "lambda:DeleteMicrovmImage",
    "lambda:DeleteMicrovmImageVersion",
@@ -13529,7 +13632,9 @@
    "network-firewall:ListTagsForResources",
    "network-firewall:TagResource",
    "network-firewall:UntagResource",
-   "network-firewall:UpdateFirewallPolicy"
+   "network-firewall:UpdateFirewallPolicy",
+   "route53resolver:AssociateFirewallRuleGroupWithService",
+   "route53resolver:GetFirewallRuleGroup"
   ],
   "AWS::NetworkFirewall::LoggingConfiguration": [
    "firehose:TagDeliveryStream",
@@ -13597,6 +13702,15 @@
    "networkflowmonitor:UntagResource",
    "networkflowmonitor:UpdateMonitor"
   ],
+  "AWS::NetworkFlowMonitor::PerformanceMonitor": [
+   "networkflowmonitor:CreatePerformanceMonitor",
+   "networkflowmonitor:DeletePerformanceMonitor",
+   "networkflowmonitor:GetPerformanceMonitor",
+   "networkflowmonitor:ListTagsForResource",
+   "networkflowmonitor:TagResource",
+   "networkflowmonitor:UntagResource",
+   "networkflowmonitor:UpdatePerformanceMonitor"
+  ],
   "AWS::NetworkFlowMonitor::Scope": [
    "iam:CreateServiceLinkedRole",
    "iam:GetRole",
@@ -13630,6 +13744,21 @@
    "networkmanager:ListTagsForResource",
    "networkmanager:TagResource",
    "networkmanager:UntagResource"
+  ],
+  "AWS::NetworkManager::ContextStore": [
+   "networkmanager:CreateContextStore",
+   "networkmanager:DeleteContextStore",
+   "networkmanager:GetContextStore",
+   "networkmanager:ListContextStores",
+   "networkmanager:ListTagsForResource",
+   "networkmanager:TagResource",
+   "networkmanager:UntagResource",
+   "networkmanager:UpdateContextStore"
+  ],
+  "AWS::NetworkManager::ContextStoreAssociation": [
+   "networkmanager:AssociateContextStore",
+   "networkmanager:DisassociateContextStore",
+   "networkmanager:GetContextStoreAssociation"
   ],
   "AWS::NetworkManager::CoreNetwork": [
    "ec2:DescribeRegions",
@@ -14299,6 +14428,7 @@
    "aoss:DeleteCollection",
    "aoss:ListTagsForResource",
    "aoss:TagResource",
+   "aoss:UntagResource",
    "aoss:UpdateCollection",
    "iam:CreateServiceLinkedRole",
    "kms:CreateGrant",
@@ -15296,7 +15426,8 @@
    "ram:ReplacePermissionAssociations",
    "ram:SetDefaultPermissionVersion",
    "ram:TagResource",
-   "ram:UntagResource"
+   "ram:UntagResource",
+   "ram:UpdatePermission"
   ],
   "AWS::RAM::PermissionAssociation": [
    "ram:AssociateResourceSharePermission",
@@ -16533,6 +16664,12 @@
    "route53:ListHostedZones",
    "route53:ListResourceRecordSets"
   ],
+  "AWS::Route53::RecordSetProtection": [
+   "route53:CreateResourceRecordSetProtections",
+   "route53:DeleteResourceRecordSetProtections",
+   "route53:ListResourceRecordSetProtections",
+   "route53:ListResourceRecordSets"
+  ],
   "AWS::Route53::TrafficPolicy": [
    "route53:CreateTrafficPolicy",
    "route53:DeleteTrafficPolicy",
@@ -17156,6 +17293,10 @@
   "AWS::S3Tables::TableBucket": [
    "iam:PassRole",
    "kms:DescribeKey",
+   "s3:GetBucketLocation",
+   "s3:GetBucketObjectLockConfiguration",
+   "s3:GetEncryptionConfiguration",
+   "s3:ListBucket",
    "s3tables:CreateTableBucket",
    "s3tables:DeleteTableBucket",
    "s3tables:DeleteTableBucketEncryption",
@@ -17163,12 +17304,14 @@
    "s3tables:DeleteTableBucketReplication",
    "s3tables:GetTableBucket",
    "s3tables:GetTableBucketEncryption",
+   "s3tables:GetTableBucketLogging",
    "s3tables:GetTableBucketMaintenanceConfiguration",
    "s3tables:GetTableBucketMetricsConfiguration",
    "s3tables:GetTableBucketReplication",
    "s3tables:GetTableBucketStorageClass",
    "s3tables:ListTagsForResource",
    "s3tables:PutTableBucketEncryption",
+   "s3tables:PutTableBucketLogging",
    "s3tables:PutTableBucketMaintenanceConfiguration",
    "s3tables:PutTableBucketMetricsConfiguration",
    "s3tables:PutTableBucketReplication",
@@ -17674,6 +17817,19 @@
    "ssm:RemoveTagsFromResource",
    "ssm:UpdateCloudConnector"
   ],
+  "AWS::SSM::DefaultHostManagementConfiguration": [
+   "iam:AttachRolePolicy",
+   "iam:CreateRole",
+   "iam:DeleteRole",
+   "iam:DetachRolePolicy",
+   "iam:GetRole",
+   "iam:PassRole",
+   "ssm:DeregisterDefaultHostManagementConfiguration",
+   "ssm:GetServiceSetting",
+   "ssm:RegisterDefaultHostManagementConfiguration",
+   "ssm:ResetServiceSetting",
+   "ssm:UpdateServiceSetting"
+  ],
   "AWS::SSM::Document": [
    "iam:PassRole",
    "s3:GetObject",
@@ -17968,6 +18124,7 @@
    "sagemaker:UpdateAction"
   ],
   "AWS::SageMaker::Algorithm": [
+   "ecr:BatchGetImage",
    "sagemaker:AddTags",
    "sagemaker:CreateAlgorithm",
    "sagemaker:DeleteAlgorithm",
@@ -19321,6 +19478,7 @@
    "supportapp:PutAccountAlias"
   ],
   "AWS::SupportApp::SlackChannelConfiguration": [
+   "iam:PassRole",
    "supportapp:CreateSlackChannelConfiguration",
    "supportapp:DeleteSlackChannelConfiguration",
    "supportapp:ListSlackChannelConfigurations",
