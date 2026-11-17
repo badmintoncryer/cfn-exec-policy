@@ -263,8 +263,6 @@ var handWritten = map[string][]string{
 	// come from the IAM docs.
 	"AWS::DocDB::DBInstance": {"rds:AddTagsToResource", "rds:CreateDBInstance", "rds:DeleteDBInstance",
 		"rds:DescribeDBInstances", "rds:ListTagsForResource", "rds:ModifyDBInstance", "rds:RemoveTagsFromResource"},
-	"AWS::DMS::ReplicationInstance": {"dms:AddTagsToResource", "dms:CreateReplicationInstance", "dms:DeleteReplicationInstance",
-		"dms:DescribeReplicationInstances", "dms:ListTagsForResource", "dms:ModifyReplicationInstance", "dms:RemoveTagsFromResource"},
 	"AWS::Elasticsearch::Domain": {"es:AddTags", "es:CreateElasticsearchDomain", "es:DeleteElasticsearchDomain",
 		"es:DescribeElasticsearchDomain", "es:ListTags", "es:RemoveTags", "iam:PassRole"},
 	"AWS::FSx::FileSystem": {"fsx:CreateFileSystem", "fsx:DeleteFileSystem", "fsx:DescribeFileSystems",
