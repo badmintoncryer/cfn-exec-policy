@@ -18305,6 +18305,15 @@
    "sagemaker:ListTags",
    "sagemaker:UpdateExperiment"
   ],
+  "AWS::SageMaker::Extension": [
+   "sagemaker:AddTags",
+   "sagemaker:CreateClusterExtension",
+   "sagemaker:DeleteClusterExtension",
+   "sagemaker:DeleteTags",
+   "sagemaker:DescribeClusterExtension",
+   "sagemaker:ListTags",
+   "sagemaker:UpdateClusterExtension"
+  ],
   "AWS::SageMaker::FeatureGroup": [
    "glue:CreateDatabase",
    "glue:CreateTable",
