@@ -4105,6 +4105,10 @@
    "iam:PassRole",
    "iam:PutRolePolicy"
   ],
+  "AWS::Cognito::UserPoolClientSessionConfigurationAttachment": [
+   "cognito-idp:GetUserPoolClientSessionConfiguration",
+   "cognito-idp:SetUserPoolClientSessionConfiguration"
+  ],
   "AWS::Cognito::UserPoolDomain": [
    "cloudfront:updateDistribution",
    "cognito-idp:CreateUserPoolDomain",
@@ -4178,6 +4182,10 @@
    "cognito-idp:DescribeRiskConfiguration",
    "cognito-idp:SetRiskConfiguration",
    "iam:PassRole"
+  ],
+  "AWS::Cognito::UserPoolSessionConfigurationAttachment": [
+   "cognito-idp:GetUserPoolSessionConfiguration",
+   "cognito-idp:SetUserPoolSessionConfiguration"
   ],
   "AWS::Cognito::UserPoolUICustomizationAttachment": [
    "cognito-idp:GetUICustomization",
@@ -9061,6 +9069,7 @@
    "gamelift:DeleteFleetLocations",
    "gamelift:DeleteScalingPolicy",
    "gamelift:DescribeContainerFleet",
+   "gamelift:DescribeFleetCapacity",
    "gamelift:DescribeFleetDeployment",
    "gamelift:DescribeFleetLocationAttributes",
    "gamelift:DescribeFleetLocationCapacity",
@@ -11622,6 +11631,30 @@
    "lambda:GetResourcePolicy",
    "lambda:PutResourcePolicy",
    "lambda:RemovePermission"
+  ],
+  "AWS::Lambda::Runtime": [
+   "lambda:CreateRuntime",
+   "lambda:DeleteRuntime",
+   "lambda:GetRuntime",
+   "lambda:ListTags",
+   "lambda:TagResource",
+   "lambda:UntagResource",
+   "lambda:UpdateRuntime"
+  ],
+  "AWS::Lambda::RuntimeAlias": [
+   "lambda:CreateRuntimeAlias",
+   "lambda:DeleteRuntimeAlias",
+   "lambda:GetRuntimeAlias",
+   "lambda:UpdateRuntimeAlias"
+  ],
+  "AWS::Lambda::RuntimeVersion": [
+   "ecr:BatchCheckLayerAvailability",
+   "ecr:BatchGetImage",
+   "ecr:GetDownloadUrlForLayer",
+   "lambda:CreateRuntimeVersion",
+   "lambda:DeleteRuntimeVersion",
+   "lambda:GetRuntimeVersion",
+   "lambda:UpdateRuntimeVersion"
   ],
   "AWS::Lambda::Url": [
    "lambda:CreateFunctionUrlConfig",
@@ -16625,6 +16658,14 @@
    "route53:ListTagsForResource",
    "route53:UpdateHealthCheck"
   ],
+  "AWS::Route53::HealthCheckSource": [
+   "iam:CreateServiceLinkedRole",
+   "route53:ChangeTagsForResource",
+   "route53:CreateHealthCheckSource",
+   "route53:DeleteHealthCheckSource",
+   "route53:GetHealthCheckSource",
+   "route53:ListTagsForResource"
+  ],
   "AWS::Route53::HostedZone": [
    "ec2:DescribeVpcs",
    "route53:AssociateVPCWithHostedZone",
@@ -16727,6 +16768,7 @@
    "route53globalresolver:UpdateFirewallRule"
   ],
   "AWS::Route53GlobalResolver::GlobalResolver": [
+   "networkmanager:GetCoreNetwork",
    "route53globalresolver:CreateGlobalResolver",
    "route53globalresolver:DeleteGlobalResolver",
    "route53globalresolver:GetGlobalResolver",
@@ -17985,8 +18027,19 @@
    "cloudformation:DeleteStackInstances",
    "cloudformation:DeleteStackSet",
    "cloudformation:Describe*",
+   "cloudformation:DescribeOrganizationsAccess",
+   "cloudformation:DescribeStackEvents",
+   "cloudformation:DescribeStackInstance",
+   "cloudformation:DescribeStackSet",
+   "cloudformation:DescribeStackSetOperation",
+   "cloudformation:DescribeStacks",
    "cloudformation:GetTemplate",
    "cloudformation:List*",
+   "cloudformation:ListStackInstances",
+   "cloudformation:ListStackSetOperationResults",
+   "cloudformation:ListStackSetOperations",
+   "cloudformation:ListStackSets",
+   "cloudformation:ListStacks",
    "cloudformation:RollbackStack",
    "cloudformation:StopStackSetOperation",
    "cloudformation:TagResource",
@@ -17999,8 +18052,15 @@
    "iam:PassRole",
    "organizations:DeregisterDelegatedAdministrator",
    "organizations:Describe*",
+   "organizations:DescribeAccount",
+   "organizations:DescribeOrganization",
+   "organizations:DescribeOrganizationalUnit",
    "organizations:EnableAWSServiceAccess",
    "organizations:List*",
+   "organizations:ListAWSServiceAccessForOrganization",
+   "organizations:ListDelegatedAdministrators",
+   "organizations:ListParents",
+   "organizations:ListRoots",
    "organizations:RegisterDelegatedAdministrator",
    "ssm-quicksetup:CreateConfigurationManager",
    "ssm-quicksetup:DeleteConfigurationManager",
@@ -18014,10 +18074,17 @@
    "ssm:CreateResourceDataSync",
    "ssm:DeleteAssociation",
    "ssm:Describe*",
+   "ssm:DescribeAssociation",
+   "ssm:DescribeAutomationExecutions",
    "ssm:DescribeDocument",
    "ssm:Get*",
+   "ssm:GetAutomationExecution",
    "ssm:GetDocument",
+   "ssm:GetOpsSummary",
    "ssm:List*",
+   "ssm:ListAssociations",
+   "ssm:ListDocuments",
+   "ssm:ListResourceDataSync",
    "ssm:StartAssociationsOnce",
    "ssm:StartAutomationExecution",
    "ssm:UpdateResourceDataSync"
